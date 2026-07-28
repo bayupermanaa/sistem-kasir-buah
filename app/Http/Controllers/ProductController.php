@@ -55,7 +55,9 @@ class ProductController extends Controller
         $imagePath = null;
 
         try {
-            $imagePath = $request->file('image')?->store('products', 'public');
+            if ($request->hasFile('image')) {
+                $imagePath = Storage::disk('public')->putFile('products', $request->file('image'));
+            }
 
             DB::transaction(function () use ($request, $imagePath): void {
                 $product = Product::create([
@@ -101,7 +103,7 @@ class ProductController extends Controller
                 Storage::disk('public')->delete($product->image);
             }
 
-            $imagePath = $request->file('image')->store('products', 'public');
+            $imagePath = Storage::disk('public')->putFile('products', $request->file('image'));
         }
 
         $product->update([

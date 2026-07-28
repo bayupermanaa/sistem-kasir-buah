@@ -7,6 +7,8 @@
         'stocks.adjust.create' => 'Penyesuaian Stok',
         'stocks.minimum.edit' => 'Minimum Stok',
         'stock.histories.index' => 'Riwayat Stok',
+        'transactions.index' => 'Riwayat Transaksi',
+        'reports.sales' => 'Laporan Penjualan',
         'products.create' => 'Tambah Produk',
         'products.edit' => 'Edit Produk',
         'categories.index' => 'Kategori',
@@ -16,6 +18,7 @@
         'units.create' => 'Tambah Satuan',
         'units.edit' => 'Edit Satuan',
         'kasir' => 'Halaman Kasir',
+        'kasir.show' => 'Transaksi Selesai',
         'pengaturan' => 'Halaman Pengaturan',
         'profile.edit' => 'Profil Akun',
     ];
@@ -33,8 +36,8 @@
             <span class="fw-semibold text-dark">{{ $title }}</span>
             <small class="text-muted text-capitalize">
                 {{ $user?->name }} &middot; Role: {{ $user?->role }}
-                @if ($user?->role === 'cashier' && $user?->outlet)
-                    &middot; Outlet: {{ $user->outlet->name }}
+                @if ($user?->outlet)
+                    &middot; Toko: {{ $user->outlet->name }}
                 @endif
             </small>
         </div>

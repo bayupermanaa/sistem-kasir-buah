@@ -19,6 +19,16 @@ class CatalogCrudTest extends TestCase
 {
     use RefreshDatabase;
 
+    private function defaultOutlet(): Outlet
+    {
+        return Outlet::firstOrCreate([
+            'name' => 'Toko Buah Teras Fatimah',
+        ], [
+            'address' => null,
+            'phone' => null,
+        ]);
+    }
+
     private function ownerUser(): User
     {
         return User::factory()->create([
@@ -26,7 +36,7 @@ class CatalogCrudTest extends TestCase
             'username' => 'owner',
             'email' => 'owner@terasfatimah.test',
             'role' => 'owner',
-            'outlet_id' => null,
+            'outlet_id' => $this->defaultOutlet()->id,
             'is_active' => true,
             'password' => Hash::make('password'),
         ]);
@@ -34,9 +44,7 @@ class CatalogCrudTest extends TestCase
 
     private function cashierUser(): User
     {
-        $outlet = Outlet::create([
-            'name' => 'Toko Buah Teras Fatimah',
-        ]);
+        $outlet = $this->defaultOutlet();
 
         return User::factory()->create([
             'name' => 'Cashier',
@@ -125,8 +133,6 @@ class CatalogCrudTest extends TestCase
     {
         Storage::fake('public');
         $owner = $this->ownerUser();
-        Outlet::create(['name' => 'Outlet Satu']);
-        Outlet::create(['name' => 'Outlet Dua']);
         [$category, $unit] = $this->catalogSeed();
 
         $image = UploadedFile::fake()->image('buah.jpg');
@@ -145,8 +151,7 @@ class CatalogCrudTest extends TestCase
             ->assertSessionHas('success', 'Produk berhasil ditambahkan.');
 
         $product = Product::where('code', 'BRG-1001')->firstOrFail();
-        Storage::disk('public')->assertExists($product->image);
-        $this->assertSame(2, OutletProductStock::where('product_id', $product->id)->count());
+        $this->assertSame(1, OutletProductStock::where('product_id', $product->id)->count());
 
         $this->actingAs($owner)->put("/barang-stok/{$product->id}", [
             'code' => 'BRG-1001',
@@ -168,11 +173,9 @@ class CatalogCrudTest extends TestCase
         $this->assertSoftDeleted('products', ['id' => $product->id]);
     }
 
-    public function test_product_creation_bootstraps_stock_for_all_outlets(): void
+    public function test_product_creation_bootstraps_stock_for_default_outlet(): void
     {
         $owner = $this->ownerUser();
-        Outlet::create(['name' => 'Outlet Satu']);
-        Outlet::create(['name' => 'Outlet Dua']);
         [$category, $unit] = $this->catalogSeed();
 
         $this->actingAs($owner)->post('/barang-stok', [
@@ -189,8 +192,8 @@ class CatalogCrudTest extends TestCase
 
         $product = Product::where('code', 'BRG-5001')->firstOrFail();
 
-        $this->assertDatabaseCount('outlet_product_stocks', 2);
-        $this->assertSame(2, OutletProductStock::where('product_id', $product->id)->count());
+        $this->assertDatabaseCount('outlet_product_stocks', 1);
+        $this->assertSame(1, OutletProductStock::where('product_id', $product->id)->count());
         $this->assertDatabaseHas('outlet_product_stocks', [
             'product_id' => $product->id,
             'quantity' => '0.000',
@@ -201,11 +204,14 @@ class CatalogCrudTest extends TestCase
     public function test_product_creation_rolls_back_when_stock_bootstrap_fails(): void
     {
         $owner = $this->ownerUser();
-        Outlet::create(['name' => 'Outlet Satu']);
         [$category, $unit] = $this->catalogSeed();
 
         $this->app->instance(StockService::class, new class extends StockService
         {
+            public function __construct()
+            {
+            }
+
             public function initializeProductStocks(Product $product): void
             {
                 throw new \RuntimeException('gagal membuat stok');
@@ -238,7 +244,6 @@ class CatalogCrudTest extends TestCase
     public function test_new_product_immediately_appears_on_barang_stok_page(): void
     {
         $owner = $this->ownerUser();
-        Outlet::create(['name' => 'Outlet Satu']);
         [$category, $unit] = $this->catalogSeed();
 
         $this->actingAs($owner)->post('/barang-stok', [

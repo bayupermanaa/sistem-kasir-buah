@@ -10,6 +10,8 @@ class Outlet extends Model
 {
     use HasFactory;
 
+    public const DEFAULT_NAME = 'Toko Buah Teras Fatimah';
+
     protected $fillable = [
         'name',
         'address',
@@ -29,5 +31,22 @@ class Outlet extends Model
     public function stockHistories(): HasMany
     {
         return $this->hasMany(StockHistory::class);
+    }
+
+    public function transactions(): HasMany
+    {
+        return $this->hasMany(Transaction::class);
+    }
+
+    public static function default(): self
+    {
+        return static::query()
+            ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END, id ASC', [self::DEFAULT_NAME])
+            ->firstOrFail();
+    }
+
+    public static function defaultId(): int
+    {
+        return (int) static::default()->id;
     }
 }

@@ -34,11 +34,11 @@
                             <td><span class="badge {{ $category->is_active ? 'text-bg-success' : 'text-bg-secondary' }}">{{ $category->is_active ? 'Aktif' : 'Nonaktif' }}</span></td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
-                                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                                    <form method="POST" action="{{ route('categories.destroy', $category) }}" onsubmit="return confirm('Hapus kategori ini?')">
+                                    <a href="{{ route('categories.edit', $category) }}" class="btn btn-sm btn-outline-primary js-action-edit" data-bs-toggle="tooltip" title="Edit" aria-label="Edit">Edit</a>
+                                    <form method="POST" action="{{ route('categories.destroy', $category) }}" class="delete-form">
                                         @csrf
                                         @method('DELETE')
-                                        <button class="btn btn-sm btn-outline-danger" type="submit">Hapus</button>
+                                        <button class="btn btn-sm btn-outline-danger js-action-delete" type="submit" data-bs-toggle="tooltip" title="Hapus" aria-label="Hapus">Hapus</button>
                                     </form>
                                 </div>
                             </td>
@@ -54,3 +54,4 @@
         </div>
     </div>
 </x-app-layout>
+

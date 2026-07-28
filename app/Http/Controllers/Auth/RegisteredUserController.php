@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Outlet;
 use App\Models\User;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
@@ -42,7 +43,7 @@ class RegisteredUserController extends Controller
             'username' => $request->username,
             'email' => $request->email,
             'role' => 'cashier',
-            'outlet_id' => null,
+            'outlet_id' => Outlet::defaultId(),
             'is_active' => true,
             'password' => Hash::make($request->password),
         ]);

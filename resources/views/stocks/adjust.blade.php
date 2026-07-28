@@ -1,8 +1,8 @@
-<x-app-layout>
+﻿<x-app-layout>
     <x-slot name="header">
         @include('layouts.partials.page-header', [
             'title' => 'Penyesuaian Stok',
-            'subtitle' => 'Tambah atau kurangi stok untuk satu produk dan outlet tertentu.',
+            'subtitle' => 'Tambah atau kurangi stok untuk satu produk pada toko utama.',
             'icon' => 'bi-arrow-left-right',
         ])
     </x-slot>
@@ -12,6 +12,7 @@
             <div class="mb-4">
                 <div class="fw-semibold">{{ $product->name }}</div>
                 <div class="text-muted small">{{ $product->code }} · {{ $product->category?->name }} · {{ $product->unit?->name }}</div>
+                <div class="text-muted small">Toko: {{ $outlet->name }}</div>
             </div>
 
             <form method="POST" action="{{ route('stocks.adjust.store', $product) }}">
@@ -20,19 +21,8 @@
 
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label" for="outlet_id">Outlet</label>
-                        @if (auth()->user()->role === 'cashier')
-                            <input type="hidden" name="outlet_id" value="{{ auth()->user()->outlet_id }}">
-                            <input type="text" class="form-control" value="{{ auth()->user()->outlet?->name }}" disabled>
-                        @else
-                            <select name="outlet_id" id="outlet_id" class="form-select @error('outlet_id') is-invalid @enderror" required>
-                                <option value="">Pilih outlet</option>
-                                @foreach ($outlets as $outlet)
-                                    <option value="{{ $outlet->id }}" @selected(old('outlet_id', $selectedOutletId) == $outlet->id)>{{ $outlet->name }}</option>
-                                @endforeach
-                            </select>
-                            @error('outlet_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                        @endif
+                        <label class="form-label">Toko</label>
+                        <input type="text" class="form-control" value="{{ $outlet->name }}" disabled>
                     </div>
 
                     <div class="col-md-6">

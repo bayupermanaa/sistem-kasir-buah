@@ -1,8 +1,11 @@
 <?php
 
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CashierTransactionController;
+use App\Http\Controllers\TransactionHistoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SalesReportController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockHistoryController;
 use App\Http\Controllers\UnitController;
@@ -14,9 +17,16 @@ Route::view('/dashboard', 'dashboard')
     ->middleware(['auth', 'role:owner'])
     ->name('dashboard');
 
-Route::view('/kasir', 'kasir')
-    ->middleware(['auth', 'role:owner,cashier'])
-    ->name('kasir');
+Route::middleware(['auth', 'role:owner,cashier'])->group(function () {
+    Route::get('/kasir', [CashierTransactionController::class, 'index'])->name('kasir');
+    Route::post('/kasir', [CashierTransactionController::class, 'store'])->name('kasir.store');
+    Route::get('/kasir/transaksi/{transaction}', [CashierTransactionController::class, 'show'])->name('kasir.show');
+    Route::get('/kasir/transaksi/{transaction}/print', [CashierTransactionController::class, 'print'])->name('kasir.print');
+    Route::get('/riwayat-transaksi', [TransactionHistoryController::class, 'index'])->name('transactions.index');
+    Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('reports.sales');
+    Route::get('/laporan-penjualan/export/pdf', [SalesReportController::class, 'exportPdf'])->name('reports.sales.export.pdf');
+    Route::get('/laporan-penjualan/export/excel', [SalesReportController::class, 'exportExcel'])->name('reports.sales.export.excel');
+});
 
 Route::view('/pengaturan', 'pengaturan')
     ->middleware(['auth', 'role:owner'])

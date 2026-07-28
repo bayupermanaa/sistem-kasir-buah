@@ -8,7 +8,7 @@
     <x-slot name="header">
         @include('layouts.partials.page-header', [
             'title' => 'Riwayat Stok',
-            'subtitle' => 'Catatan setiap perubahan stok pada semua outlet yang dapat diakses.',
+            'subtitle' => 'Catatan setiap perubahan stok pada toko utama.',
             'icon' => 'bi-clock-history',
         ])
     </x-slot>
@@ -20,17 +20,6 @@
                     <label class="form-label" for="search">Cari produk</label>
                     <input type="text" name="search" id="search" class="form-control" value="{{ request('search') }}" placeholder="Kode / nama produk">
                 </div>
-                @if (auth()->user()->role === 'owner')
-                    <div class="col-md-3">
-                        <label class="form-label" for="outlet_id">Outlet</label>
-                        <select name="outlet_id" id="outlet_id" class="form-select">
-                            <option value="">Semua outlet</option>
-                            @foreach ($outlets as $outlet)
-                                <option value="{{ $outlet->id }}" @selected((string) request('outlet_id') === (string) $outlet->id)>{{ $outlet->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
                 <div class="col-md-2">
                     <label class="form-label" for="type">Jenis</label>
                     <select name="type" id="type" class="form-select">
@@ -63,7 +52,6 @@
                     <tr>
                         <th>Tanggal</th>
                         <th>Produk</th>
-                        <th>Outlet</th>
                         <th>Pengguna</th>
                         <th>Jenis</th>
                         <th class="text-end">Stok Sebelum</th>
@@ -80,7 +68,6 @@
                                 <div class="fw-semibold">{{ $history->product?->name }}</div>
                                 <div class="text-muted small">{{ $history->product?->code }}</div>
                             </td>
-                            <td>{{ $history->outlet?->name }}</td>
                             <td>{{ $history->user?->name }}</td>
                             <td>
                                 <span class="badge {{ $history->type_badge_class }}">
@@ -99,7 +86,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Tidak ada riwayat stok.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Tidak ada riwayat stok.</td>
                         </tr>
                     @endforelse
                 </tbody>

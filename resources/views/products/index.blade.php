@@ -2,7 +2,7 @@
     <x-slot name="header">
         @include('layouts.partials.page-header', [
             'title' => 'Barang & Stok',
-            'subtitle' => 'Stok per outlet dengan status minimum dan aksi penyesuaian.',
+            'subtitle' => 'Stok toko utama dengan status minimum dan aksi penyesuaian.',
             'icon' => 'bi-box-seam',
         ])
     </x-slot>
@@ -23,18 +23,7 @@
                     <label class="form-label" for="search">Cari produk</label>
                     <input type="text" id="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Kode atau nama barang">
                 </div>
-                @if (auth()->user()->role === 'owner')
-                    <div class="col-md-4">
-                        <label class="form-label" for="outlet_id">Filter outlet</label>
-                        <select id="outlet_id" name="outlet_id" class="form-select">
-                            <option value="">Semua outlet</option>
-                            @foreach ($outlets as $outlet)
-                                <option value="{{ $outlet->id }}" @selected((string) request('outlet_id') === (string) $outlet->id)>{{ $outlet->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                @endif
-                <div class="{{ auth()->user()->role === 'owner' ? 'col-md-3' : 'col-md-7' }} d-flex gap-2">
+                <div class="col-md-7 d-flex gap-2">
                     <button class="btn btn-primary flex-grow-1" type="submit">Cari</button>
                     <a href="{{ route('products.index') }}" class="btn btn-outline-secondary">Reset</a>
                 </div>
@@ -56,7 +45,6 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th>Outlet</th>
                         <th>Kode</th>
                         <th>Nama</th>
                         <th>Kategori</th>
@@ -70,7 +58,6 @@
                 <tbody>
                     @forelse ($stocks as $stock)
                         <tr>
-                            <td>{{ $stock->outlet?->name }}</td>
                             <td class="fw-semibold">{{ $stock->product?->code }}</td>
                             <td>{{ $stock->product?->name }}</td>
                             <td>{{ $stock->product?->category?->name }}</td>
@@ -85,7 +72,7 @@
                             </td>
                             <td class="text-end">
                                 <div class="d-inline-flex gap-2">
-                                    <a href="{{ route('stocks.adjust.create', $stock->product) }}?outlet_id={{ $stock->outlet_id }}" class="btn btn-sm btn-outline-primary">Penyesuaian</a>
+                                    <a href="{{ route('stocks.adjust.create', $stock->product) }}" class="btn btn-sm btn-outline-primary">Penyesuaian</a>
                                     @if (auth()->user()->role === 'owner')
                                         <a href="{{ route('stocks.minimum.edit', $stock) }}" class="btn btn-sm btn-outline-secondary">Minimum</a>
                                     @endif
@@ -94,7 +81,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Tidak ada data stok.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Tidak ada data stok.</td>
                         </tr>
                     @endforelse
                 </tbody>

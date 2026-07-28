@@ -15,7 +15,7 @@
                 </div>
                 <div>
                     <div class="fw-semibold">Pengaturan aplikasi</div>
-                    <div class="text-muted">Menu ini akan dipakai untuk pengaturan pengguna dan outlet.</div>
+                    <div class="text-muted">Menu ini akan dipakai untuk pengaturan pengguna dan toko.</div>
                 </div>
             </div>
         </div>

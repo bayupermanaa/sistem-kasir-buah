@@ -14,23 +14,29 @@ class InitialDataSeeder extends Seeder
      */
     public function run(): void
     {
-        $outlet = Outlet::create([
+        $outlet = Outlet::updateOrCreate([
+            'name' => Outlet::DEFAULT_NAME,
+        ], [
             'name' => 'Toko Buah Teras Fatimah',
             'address' => null,
             'phone' => null,
         ]);
 
-        User::create([
+        User::updateOrCreate([
+            'username' => 'owner',
+        ], [
             'name' => 'Owner',
             'username' => 'owner',
             'email' => 'owner@terasfatimah.test',
             'role' => 'owner',
-            'outlet_id' => null,
+            'outlet_id' => $outlet->id,
             'is_active' => true,
             'password' => Hash::make('password'),
         ]);
 
-        User::create([
+        User::updateOrCreate([
+            'username' => 'cashier',
+        ], [
             'name' => 'Cashier',
             'username' => 'cashier',
             'email' => 'cashier@terasfatimah.test',

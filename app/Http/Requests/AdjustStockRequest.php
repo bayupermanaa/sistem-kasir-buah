@@ -16,7 +16,6 @@ class AdjustStockRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'outlet_id' => ['required', 'integer', Rule::exists('outlets', 'id')],
             'type' => ['required', 'string', Rule::in(StockService::MANUAL_TYPES)],
             'quantity' => ['required', 'numeric', 'min:0.001'],
             'reason' => ['required', 'string', 'max:255'],

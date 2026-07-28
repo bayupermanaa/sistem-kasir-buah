@@ -13,6 +13,10 @@ use Illuminate\Validation\ValidationException;
 
 class StockService
 {
+    public function __construct(private readonly SingleOutletService $singleOutletService)
+    {
+    }
+
     public const MANUAL_TYPES = [
         'restock',
         'adjustment_in',
@@ -124,20 +128,16 @@ class StockService
 
     public function initializeProductStocks(Product $product): void
     {
-        $outlets = Outlet::query()->get();
-
-        foreach ($outlets as $outlet) {
-            OutletProductStock::firstOrCreate(
-                [
-                    'outlet_id' => $outlet->id,
-                    'product_id' => $product->id,
-                ],
-                [
-                    'quantity' => 0,
-                    'minimum_stock' => 0,
-                ]
-            );
-        }
+        OutletProductStock::firstOrCreate(
+            [
+                'outlet_id' => $this->singleOutletService->getDefaultOutletId(),
+                'product_id' => $product->id,
+            ],
+            [
+                'quantity' => 0,
+                'minimum_stock' => 0,
+            ]
+        );
     }
 
     public function updateMinimumStock(User $user, OutletProductStock $stock, float $minimumStock): OutletProductStock
@@ -186,14 +186,14 @@ class StockService
 
     private function assertUserCanAccessOutlet(User $user, Outlet $outlet): void
     {
-        if ($user->role === 'owner') {
+        if ((int) $outlet->id !== $this->singleOutletService->getDefaultOutletId()) {
+            throw new AuthorizationException('Anda hanya dapat mengakses toko utama.');
+        }
+
+        if ($user->role === 'owner' || ($user->role === 'cashier' && (int) $user->outlet_id === (int) $outlet->id)) {
             return;
         }
 
-        if ($user->role === 'cashier' && (int) $user->outlet_id === (int) $outlet->id) {
-            return;
-        }
-
-        throw new AuthorizationException('Anda tidak memiliki akses ke outlet ini.');
+        throw new AuthorizationException('Anda tidak memiliki akses ke toko ini.');
     }
 }

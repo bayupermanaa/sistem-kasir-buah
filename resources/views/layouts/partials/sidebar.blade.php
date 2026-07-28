@@ -8,10 +8,10 @@
         ['label' => 'Kasir', 'route' => 'kasir', 'icon' => 'bi-cash-coin', 'placeholder' => false],
         ['label' => 'Barang & Stok', 'route' => 'products.index', 'icon' => 'bi-box-seam', 'placeholder' => false],
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
-        ['label' => 'Riwayat Transaksi', 'route' => null, 'icon' => 'bi-receipt', 'placeholder' => true],
+        ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
         ['label' => 'Pengeluaran', 'route' => null, 'icon' => 'bi-wallet2', 'placeholder' => true],
         ['label' => 'Stock Opname', 'route' => null, 'icon' => 'bi-clipboard-data', 'placeholder' => true],
-        ['label' => 'Laporan', 'route' => null, 'icon' => 'bi-graph-up', 'placeholder' => true],
+        ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
         ['label' => 'Pengaturan', 'route' => 'pengaturan', 'icon' => 'bi-gear', 'placeholder' => false],
     ];
 
@@ -19,7 +19,8 @@
         ['label' => 'Kasir', 'route' => 'kasir', 'icon' => 'bi-cash-coin', 'placeholder' => false],
         ['label' => 'Barang & Stok', 'route' => 'products.index', 'icon' => 'bi-box-seam', 'placeholder' => false],
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
-        ['label' => 'Riwayat Transaksi', 'route' => null, 'icon' => 'bi-receipt', 'placeholder' => true],
+        ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
+        ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
         ['label' => 'Pengeluaran', 'route' => null, 'icon' => 'bi-wallet2', 'placeholder' => true],
         ['label' => 'Stock Opname', 'route' => null, 'icon' => 'bi-clipboard-data', 'placeholder' => true],
     ];
@@ -42,13 +43,16 @@
         @foreach ($menus as $menu)
             @php
                 $active = $menu['route'] && (
-                    request()->routeIs($menu['route']) ||
+                    ($menu['route'] === 'kasir' && request()->routeIs('kasir*')) ||
                     ($menu['route'] === 'products.index' && (
                         request()->routeIs('products.*')
                         || request()->routeIs('stocks.*')
                         || request()->routeIs('categories.*')
                         || request()->routeIs('units.*')
-                    ))
+                    )) ||
+                    ($menu['route'] === 'transactions.index' && request()->routeIs('transactions.*', 'kasir.show', 'kasir.print')) ||
+                    ($menu['route'] === 'reports.sales' && request()->routeIs('reports.*')) ||
+                    request()->routeIs($menu['route'])
                 );
             @endphp
 

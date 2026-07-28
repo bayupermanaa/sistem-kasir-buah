@@ -2,18 +2,18 @@
 
 namespace Database\Seeders;
 
-use App\Models\Outlet;
 use App\Models\OutletProductStock;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\StockService;
+use App\Services\SingleOutletService;
 use Illuminate\Database\Seeder;
 
 class StockSeeder extends Seeder
 {
     public function run(): void
     {
-        $outlet = Outlet::where('name', 'Toko Buah Teras Fatimah')->firstOrFail();
+        $outlet = app(SingleOutletService::class)->getDefaultOutlet();
         $owner = User::where('role', 'owner')->firstOrFail();
         $service = app(StockService::class);
 

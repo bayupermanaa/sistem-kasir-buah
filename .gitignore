@@ -1,5 +1,6 @@
 /vendor/
 node_modules/
+.vscode/
 npm-debug.log
 yarn-error.log
 
@@ -17,10 +18,13 @@ public_html/hot
 
 storage/*.key
 .env
+.env.*
 Homestead.yaml
 Homestead.json
 /.vagrant
 .phpunit.result.cache
+storage/logs/*
+bootstrap/cache/*.php
 
 /public/build
 /storage/pail
