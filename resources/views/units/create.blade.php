@@ -9,8 +9,8 @@
 
     @include('catalog.partials.nav')
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
+    <div class="card ui-section-card">
+        <div class="card-body p-4 p-lg-5">
             @include('units.partials.form', [
                 'action' => route('units.store'),
                 'method' => 'POST',

@@ -1,16 +1,18 @@
 @props(['title', 'subtitle' => null, 'icon' => null])
 
-<div class="d-flex align-items-start gap-3 mb-3">
-    @if ($icon)
-        <div class="bg-white border rounded-3 d-inline-flex align-items-center justify-content-center text-primary shadow-sm" style="width: 3rem; height: 3rem;">
-            <i class="bi {{ $icon }} fs-5"></i>
-        </div>
-    @endif
-
-    <div>
-        <h1 class="h4 mb-1">{{ $title }}</h1>
-        @if ($subtitle)
-            <p class="text-muted mb-0">{{ $subtitle }}</p>
+<div class="ui-surface ui-page-header ui-surface-soft">
+    <div class="d-flex align-items-start gap-3">
+        @if ($icon)
+            <div class="ui-page-header-icon">
+                <i class="bi {{ $icon }} fs-5"></i>
+            </div>
         @endif
+
+        <div class="flex-grow-1">
+            <div class="ui-page-header-title">{{ $title }}</div>
+            @if ($subtitle)
+                <p class="ui-page-header-subtitle mt-1">{{ $subtitle }}</p>
+            @endif
+        </div>
     </div>
 </div>

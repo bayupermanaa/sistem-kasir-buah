@@ -104,6 +104,23 @@ class CashierTransactionTest extends TestCase
             ->assertDontSee('Apel Merah');
     }
 
+    public function test_cashier_cart_modal_supports_edit_mode_copy(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-006', 'Apel Hijau', 18000);
+        $this->createStock($cashierOutlet, $product, 3);
+
+        $this->actingAs($cashier)
+            ->get('/kasir')
+            ->assertOk()
+            ->assertSee('Tambah ke Keranjang')
+            ->assertSee('Edit Produk di Keranjang')
+            ->assertSee('Produk ini sudah ada di keranjang. Silakan ubah berat atau jumlahnya.')
+            ->assertSee('Perbarui Keranjang')
+            ->assertSee('Item keranjang berhasil diperbarui.');
+    }
+
     public function test_cash_checkout_succeeds_and_shows_receipt_page(): void
     {
         $cashierOutlet = $this->defaultOutlet();

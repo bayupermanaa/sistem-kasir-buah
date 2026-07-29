@@ -28,18 +28,20 @@
     $menus = $role === 'owner' ? $ownerMenus : $cashierMenus;
 @endphp
 
-<aside class="bg-dark text-white h-100 {{ $mobile ? 'p-3' : 'p-3 border-end border-dark-subtle' }}">
-    <div class="d-flex align-items-center gap-2 mb-4">
-        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 2.5rem; height: 2.5rem;">
-            <i class="bi bi-shop"></i>
+<aside class="ui-sidebar text-white h-100 {{ $mobile ? 'p-3' : 'p-3 border-end border-dark-subtle' }} d-flex flex-column">
+    <div class="ui-sidebar-brand d-flex align-items-center gap-3 mb-4">
+        <div class="ui-sidebar-brand-mark">
+            <i class="bi bi-shop fs-5"></i>
         </div>
         <div class="lh-sm">
-            <div class="fw-semibold">Sistem Kasir</div>
-            <small class="text-white-50">Toko Buah Teras Fatimah</small>
+            <div class="fw-semibold">Toko Buah Teras Fatimah</div>
+            <small class="text-white-50">Sistem Kasir v1.0</small>
         </div>
     </div>
 
-    <ul class="nav nav-pills flex-column gap-1">
+    <div class="text-uppercase small fw-semibold text-white-50 mb-2">Menu</div>
+
+    <ul class="nav nav-pills flex-column gap-2">
         @foreach ($menus as $menu)
             @php
                 $active = $menu['route'] && (
@@ -58,13 +60,13 @@
 
             <li class="nav-item">
                 @if ($menu['placeholder'])
-                    <span class="nav-link d-flex align-items-center gap-2 text-white-50 px-3 py-2">
+                    <span class="nav-link ui-sidebar-link placeholder d-flex align-items-center gap-2 px-3 py-2">
                         <i class="bi {{ $menu['icon'] }}"></i>
                         <span>{{ $menu['label'] }}</span>
                     </span>
                 @else
                     <a href="{{ route($menu['route']) }}"
-                       class="nav-link d-flex align-items-center gap-2 px-3 py-2 {{ $active ? 'active bg-primary text-white' : 'text-white-50' }}">
+                       class="nav-link ui-sidebar-link d-flex align-items-center gap-2 px-3 py-2 {{ $active ? 'active' : '' }}">
                         <i class="bi {{ $menu['icon'] }}"></i>
                         <span>{{ $menu['label'] }}</span>
                     </a>
@@ -72,4 +74,12 @@
             </li>
         @endforeach
     </ul>
+
+    <div class="ui-sidebar-footer mt-4">
+        <div class="fw-semibold text-white">Sistem Kasir</div>
+        <div class="d-flex align-items-center justify-content-between gap-2">
+            <span>Toko Buah Teras Fatimah</span>
+            <span class="badge text-bg-light text-dark">v1.0</span>
+        </div>
+    </div>
 </aside>

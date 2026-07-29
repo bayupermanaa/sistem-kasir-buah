@@ -6,6 +6,9 @@ use App\Models\Category;
 use App\Models\Product;
 use App\Models\Outlet;
 use App\Models\OutletProductStock;
+use App\Models\StockHistory;
+use App\Models\Transaction;
+use App\Models\TransactionItem;
 use App\Models\Unit;
 use App\Models\User;
 use App\Services\StockService;
@@ -171,6 +174,12 @@ class CatalogCrudTest extends TestCase
             ->assertRedirect(route('products.index'));
 
         $this->assertSoftDeleted('products', ['id' => $product->id]);
+        $this->assertDatabaseMissing('outlet_product_stocks', ['product_id' => $product->id]);
+
+        $this->actingAs($owner)
+            ->get('/barang-stok')
+            ->assertOk()
+            ->assertDontSee('Alpukat Premium Besar');
     }
 
     public function test_product_creation_bootstraps_stock_for_default_outlet(): void
@@ -337,5 +346,66 @@ class CatalogCrudTest extends TestCase
             'image' => UploadedFile::fake()->create('dokumen.txt', 10, 'text/plain'),
             'is_active' => 1,
         ])->assertSessionHasErrors('image');
+    }
+
+    public function test_deleted_product_keeps_historical_records_intact(): void
+    {
+        $owner = $this->ownerUser();
+        [$category, $unit] = $this->catalogSeed();
+
+        $product = Product::create([
+            'category_id' => $category->id,
+            'unit_id' => $unit->id,
+            'code' => 'BRG-8001',
+            'name' => 'Pisang Raja',
+            'description' => null,
+            'image' => null,
+            'purchase_price' => 10000,
+            'selling_price' => 15000,
+            'is_active' => true,
+        ]);
+
+        $transaction = Transaction::create([
+            'invoice_number' => 'TRX-20260728-0001',
+            'outlet_id' => $this->defaultOutlet()->id,
+            'user_id' => $owner->id,
+            'subtotal' => 15000,
+            'discount' => 0,
+            'total' => 15000,
+            'payment_method' => 'cash',
+            'cash_received' => 20000,
+            'change_amount' => 5000,
+            'status' => 'completed',
+        ]);
+
+        TransactionItem::create([
+            'transaction_id' => $transaction->id,
+            'product_id' => $product->id,
+            'quantity' => 1,
+            'weight_grams' => 1000,
+            'price_per_unit' => 15000,
+            'subtotal' => 15000,
+        ]);
+
+        StockHistory::create([
+            'outlet_id' => $this->defaultOutlet()->id,
+            'product_id' => $product->id,
+            'user_id' => $owner->id,
+            'type' => 'initial_stock',
+            'quantity_before' => 0,
+            'quantity_change' => 1,
+            'quantity_after' => 1,
+            'reason' => 'Stok awal',
+            'notes' => null,
+        ]);
+
+        $this->actingAs($owner)->delete("/barang-stok/{$product->id}")
+            ->assertRedirect(route('products.index'));
+
+        $transactionItem = TransactionItem::with('product')->firstOrFail();
+        $stockHistory = StockHistory::with('product')->firstOrFail();
+
+        $this->assertSame('Pisang Raja', $transactionItem->product?->name);
+        $this->assertSame('Pisang Raja', $stockHistory->product?->name);
     }
 }

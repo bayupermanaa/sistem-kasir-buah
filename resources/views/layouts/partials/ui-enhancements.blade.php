@@ -29,28 +29,6 @@
                 new bootstrap.Tooltip(element);
             });
 
-            document.querySelectorAll('.js-action-edit').forEach(function (element) {
-                if (element.dataset.uiEnhanced === 'true') {
-                    return;
-                }
-
-                const icon = document.createElement('i');
-                icon.className = 'bi bi-pencil-square me-1';
-                element.prepend(icon);
-                element.dataset.uiEnhanced = 'true';
-            });
-
-            document.querySelectorAll('.js-action-delete').forEach(function (element) {
-                if (element.dataset.uiEnhanced === 'true') {
-                    return;
-                }
-
-                const icon = document.createElement('i');
-                icon.className = 'bi bi-trash me-1';
-                element.prepend(icon);
-                element.dataset.uiEnhanced = 'true';
-            });
-
             document.addEventListener('submit', function (event) {
                 const form = event.target.closest('form.delete-form');
                 if (! form || form.dataset.confirmed === 'true') {
@@ -73,6 +51,60 @@
                         form.dataset.confirmed = 'true';
                         form.submit();
                     }
+                });
+            });
+
+            const dateElement = document.querySelector('[data-topbar-date]');
+            const timeElement = document.querySelector('[data-topbar-time]');
+
+            const pad = function (value) {
+                return String(value).padStart(2, '0');
+            };
+
+            const renderClock = function () {
+                const now = new Date();
+
+                if (dateElement) {
+                    dateElement.textContent = now.toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                    });
+                }
+
+                if (timeElement) {
+                    timeElement.textContent = [
+                        pad(now.getHours()),
+                        pad(now.getMinutes()),
+                        pad(now.getSeconds()),
+                    ].join(':');
+                }
+            };
+
+            renderClock();
+            window.setInterval(renderClock, 1000);
+
+            document.querySelectorAll('form[data-submit-loading]').forEach(function (form) {
+                if (form.dataset.loadingReady === 'true') {
+                    return;
+                }
+
+                form.dataset.loadingReady = 'true';
+
+                form.addEventListener('submit', function () {
+                    const submitButton = form.querySelector('[data-submit-loading-button], [type="submit"]');
+
+                    if (! submitButton || submitButton.dataset.loadingApplied === 'true') {
+                        return;
+                    }
+
+                    submitButton.dataset.loadingApplied = 'true';
+                    submitButton.dataset.originalHtml = submitButton.innerHTML;
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = `
+                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Memproses...
+                    `;
                 });
             });
         });

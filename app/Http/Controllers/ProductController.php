@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Category;
+use App\Models\OutletProductStock;
 use App\Models\Product;
 use App\Models\Unit;
 use App\Services\StockService;
@@ -123,11 +124,16 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
+        $imagePath = $product->image;
 
-        $product->delete();
+        DB::transaction(function () use ($product): void {
+            OutletProductStock::where('product_id', $product->id)->delete();
+            $product->delete();
+        });
+
+        if ($imagePath) {
+            Storage::disk('public')->delete($imagePath);
+        }
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
     }

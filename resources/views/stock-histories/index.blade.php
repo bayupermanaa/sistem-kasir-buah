@@ -1,10 +1,4 @@
 <x-app-layout>
-    <style>
-        .bg-purple {
-            background-color: #6f42c1 !important;
-        }
-    </style>
-
     <x-slot name="header">
         @include('layouts.partials.page-header', [
             'title' => 'Riwayat Stok',
@@ -13,39 +7,41 @@
         ])
     </x-slot>
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <form method="GET" action="{{ route('stock.histories.index') }}" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label" for="search">Cari produk</label>
-                    <input type="text" name="search" id="search" class="form-control" value="{{ request('search') }}" placeholder="Kode / nama produk">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="type">Jenis</label>
-                    <select name="type" id="type" class="form-select">
-                        <option value="">Semua</option>
-                        @foreach ($types as $type)
-                            <option value="{{ $type }}" @selected(request('type') === $type)>{{ str_replace('_', ' ', ucfirst($type)) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="date_from">Dari</label>
-                    <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request('date_from') }}">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="date_to">Sampai</label>
-                    <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request('date_to') }}">
-                </div>
-                <div class="col-12 d-flex gap-2">
-                    <button class="btn btn-primary" type="submit">Terapkan</button>
-                    <a href="{{ route('stock.histories.index') }}" class="btn btn-outline-secondary">Reset</a>
-                </div>
-            </form>
-        </div>
+    <div class="ui-surface ui-filter-card p-3 p-lg-4 mb-3">
+        <form method="GET" action="{{ route('stock.histories.index') }}" class="row g-3 align-items-end">
+            <div class="col-md-4 col-lg-3">
+                <label class="form-label fw-semibold" for="search">Cari produk</label>
+                <input type="text" name="search" id="search" class="form-control" value="{{ request('search') }}" placeholder="Kode / nama produk">
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <label class="form-label fw-semibold" for="type">Jenis</label>
+                <select name="type" id="type" class="form-select">
+                    <option value="">Semua jenis</option>
+                    @foreach ($types as $type)
+                        <option value="{{ $type }}" @selected(request('type') === $type)>{{ str_replace('_', ' ', ucfirst($type)) }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <label class="form-label fw-semibold" for="date_from">Dari</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" value="{{ request('date_from') }}">
+            </div>
+            <div class="col-md-4 col-lg-2">
+                <label class="form-label fw-semibold" for="date_to">Sampai</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request('date_to') }}">
+            </div>
+            <div class="col-12 d-flex flex-wrap gap-2">
+                <button class="btn btn-primary" type="submit">
+                    <i class="bi bi-funnel me-1"></i>Terapkan
+                </button>
+                <a href="{{ route('stock.histories.index') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Reset
+                </a>
+            </div>
+        </form>
     </div>
 
-    <div class="card border-0 shadow-sm">
+    <div class="card ui-section-card">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
@@ -63,7 +59,7 @@
                 <tbody>
                     @forelse ($histories as $history)
                         <tr>
-                            <td>{{ $history->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="text-nowrap">{{ $history->created_at->format('d/m/Y H:i') }}</td>
                             <td>
                                 <div class="fw-semibold">{{ $history->product?->name }}</div>
                                 <div class="text-muted small">{{ $history->product?->code }}</div>
@@ -75,24 +71,30 @@
                                     {{ $history->type_label }}
                                 </span>
                             </td>
-                            <td class="text-end">{{ number_format((float) $history->quantity_before, 3, ',', '.') }}</td>
+                            <td class="text-end text-muted">{{ number_format((float) $history->quantity_before, 3, ',', '.') }}</td>
                             <td class="text-end">
-                                <span class="{{ $history->quantity_change_class }}">
+                                <span class="fw-semibold {{ $history->quantity_change_class }}">
                                     {{ $history->formatted_quantity_change }}
                                 </span>
                             </td>
-                            <td class="text-end">{{ number_format((float) $history->quantity_after, 3, ',', '.') }}</td>
+                            <td class="text-end text-muted">{{ number_format((float) $history->quantity_after, 3, ',', '.') }}</td>
                             <td>{{ $history->reason ?: '-' }}</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">Tidak ada riwayat stok.</td>
+                            <td colspan="8">
+                                <div class="ui-empty-state ui-empty-state-panel my-2">
+                                    <i class="bi bi-clock-history"></i>
+                                    <div class="fw-semibold">Belum ada riwayat stok</div>
+                                    <div class="text-muted small">Perubahan stok akan muncul di sini setelah ada aktivitas penyesuaian.</div>
+                                </div>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="card-body">
+        <div class="card-body border-top">
             {{ $histories->links() }}
         </div>
     </div>

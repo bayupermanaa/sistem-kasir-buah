@@ -10,7 +10,8 @@
     }
 @endphp
 
-<ul class="nav nav-tabs mb-4">
+<div class="ui-surface ui-filter-card p-2 mb-4">
+    <ul class="nav nav-pills gap-2">
     @foreach ($items as $item)
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs($item['route']) ? 'active' : '' }}" href="{{ route($item['route']) }}">
@@ -18,4 +19,5 @@
             </a>
         </li>
     @endforeach
-</ul>
+    </ul>
+</div>
