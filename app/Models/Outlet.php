@@ -38,6 +38,16 @@ class Outlet extends Model
         return $this->hasMany(Transaction::class);
     }
 
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
+    }
+
+    public function stockOpnames(): HasMany
+    {
+        return $this->hasMany(StockOpname::class);
+    }
+
     public static function default(): self
     {
         return static::query()

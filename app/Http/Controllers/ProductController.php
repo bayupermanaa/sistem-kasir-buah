@@ -10,9 +10,11 @@ use App\Models\Product;
 use App\Models\Unit;
 use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
 
@@ -57,20 +59,22 @@ class ProductController extends Controller
 
         try {
             if ($request->hasFile('image')) {
-                $imagePath = Storage::disk('public')->putFile('products', $request->file('image'));
+                $imagePath = $this->storeProductImage($request->file('image'));
             }
 
             DB::transaction(function () use ($request, $imagePath): void {
+                $category = Category::query()->findOrFail($request->integer('category_id'));
+
                 $product = Product::create([
                     'category_id' => $request->integer('category_id'),
                     'unit_id' => $request->integer('unit_id'),
-                    'code' => $request->code,
+                    'code' => Product::generateAutoCode($category),
                     'name' => $request->name,
                     'description' => $request->description,
                     'image' => $imagePath,
                     'purchase_price' => $request->purchase_price,
                     'selling_price' => $request->selling_price,
-                    'is_active' => $request->boolean('is_active', true),
+                    'is_active' => $request->boolean('is_active'),
                 ]);
 
                 $this->stockService->initializeProductStocks($product);
@@ -100,23 +104,19 @@ class ProductController extends Controller
         $imagePath = $product->image;
 
         if ($request->hasFile('image')) {
-            if ($product->image) {
-                Storage::disk('public')->delete($product->image);
-            }
-
-            $imagePath = Storage::disk('public')->putFile('products', $request->file('image'));
+            $imagePath = $this->storeProductImage($request->file('image'));
         }
 
         $product->update([
             'category_id' => $request->integer('category_id'),
             'unit_id' => $request->integer('unit_id'),
-            'code' => $request->code,
+            'code' => $product->code,
             'name' => $request->name,
             'description' => $request->description,
             'image' => $imagePath,
             'purchase_price' => $request->purchase_price,
             'selling_price' => $request->selling_price,
-            'is_active' => $request->boolean('is_active', true),
+            'is_active' => $request->boolean('is_active'),
         ]);
 
         return redirect()->route('products.index')->with('success', 'Produk berhasil diperbarui.');
@@ -124,17 +124,22 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        $imagePath = $product->image;
-
         DB::transaction(function () use ($product): void {
             OutletProductStock::where('product_id', $product->id)->delete();
             $product->delete();
         });
 
-        if ($imagePath) {
-            Storage::disk('public')->delete($imagePath);
-        }
-
         return redirect()->route('products.index')->with('success', 'Produk berhasil dihapus.');
+    }
+
+    private function storeProductImage(UploadedFile $file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+        $fileName = Str::uuid()->toString().'.'.$extension;
+        $path = 'products/'.$fileName;
+
+        Storage::disk('public')->put($path, file_get_contents($file->getRealPath()));
+
+        return $path;
     }
 }

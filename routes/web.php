@@ -5,7 +5,10 @@ use App\Http\Controllers\CashierTransactionController;
 use App\Http\Controllers\TransactionHistoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\SalesReportController;
+use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockHistoryController;
 use App\Http\Controllers\UnitController;
@@ -23,14 +26,20 @@ Route::middleware(['auth', 'role:owner,cashier'])->group(function () {
     Route::get('/kasir/transaksi/{transaction}', [CashierTransactionController::class, 'show'])->name('kasir.show');
     Route::get('/kasir/transaksi/{transaction}/print', [CashierTransactionController::class, 'print'])->name('kasir.print');
     Route::get('/riwayat-transaksi', [TransactionHistoryController::class, 'index'])->name('transactions.index');
+    Route::get('/pengeluaran', [ExpenseController::class, 'index'])->name('expenses.index');
+    Route::get('/pengeluaran/create', [ExpenseController::class, 'create'])->name('expenses.create');
+    Route::post('/pengeluaran', [ExpenseController::class, 'store'])->name('expenses.store');
     Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('reports.sales');
     Route::get('/laporan-penjualan/export/pdf', [SalesReportController::class, 'exportPdf'])->name('reports.sales.export.pdf');
     Route::get('/laporan-penjualan/export/excel', [SalesReportController::class, 'exportExcel'])->name('reports.sales.export.excel');
 });
 
-Route::view('/pengaturan', 'pengaturan')
-    ->middleware(['auth', 'role:owner'])
-    ->name('pengaturan');
+Route::middleware(['auth', 'role:owner'])->group(function () {
+    Route::get('/pengaturan', [SettingsController::class, 'index'])->name('pengaturan');
+    Route::put('/pengaturan/kasir/{cashier}/password', [SettingsController::class, 'updateCashierPassword'])
+        ->whereNumber('cashier')
+        ->name('pengaturan.cashiers.password.update');
+});
 
 Route::middleware(['auth', 'role:owner,cashier'])->group(function () {
     Route::get('/barang-stok', [StockController::class, 'index'])->name('products.index');
@@ -40,6 +49,15 @@ Route::middleware(['auth', 'role:owner,cashier'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:owner'])->group(function () {
+    Route::get('/pengeluaran/{expense}/edit', [ExpenseController::class, 'edit'])->name('expenses.edit');
+    Route::put('/pengeluaran/{expense}', [ExpenseController::class, 'update'])->name('expenses.update');
+    Route::delete('/pengeluaran/{expense}', [ExpenseController::class, 'destroy'])->name('expenses.destroy');
+
+    Route::get('/stock-opname', [StockOpnameController::class, 'index'])->name('stock.opnames.index');
+    Route::get('/stock-opname/create', [StockOpnameController::class, 'create'])->name('stock.opnames.create');
+    Route::post('/stock-opname', [StockOpnameController::class, 'store'])->name('stock.opnames.store');
+    Route::get('/stock-opname/{stockOpname}', [StockOpnameController::class, 'show'])->name('stock.opnames.show');
+
     Route::get('/barang-stok/{outletProductStock}/minimum-stock', [StockController::class, 'editMinimumStock'])->name('stocks.minimum.edit');
     Route::put('/barang-stok/{outletProductStock}/minimum-stock', [StockController::class, 'updateMinimumStock'])->name('stocks.minimum.update');
 });

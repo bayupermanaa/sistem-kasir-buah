@@ -8,6 +8,7 @@
         'stocks.minimum.edit' => 'Minimum Stok',
         'stock.histories.index' => 'Riwayat Stok',
         'transactions.index' => 'Riwayat Transaksi',
+        'expenses.index' => 'Pengeluaran',
         'reports.sales' => 'Laporan Penjualan',
         'products.create' => 'Tambah Produk',
         'products.edit' => 'Edit Produk',

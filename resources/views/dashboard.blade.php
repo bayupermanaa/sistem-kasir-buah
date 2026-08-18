@@ -92,5 +92,19 @@
                 </div>
             </a>
         </div>
+
+        <div class="col-md-6 col-xl-3">
+            <a href="{{ route('expenses.index') }}" class="card ui-quick-link-card ui-quick-action border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="ui-quick-action-icon">
+                        <i class="bi bi-wallet2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Pengeluaran</div>
+                        <div class="text-muted small">Catat biaya operasional</div>
+                    </div>
+                </div>
+            </a>
+        </div>
     </div>
 </x-app-layout>

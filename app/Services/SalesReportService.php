@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Product;
+use App\Models\Expense;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
@@ -21,6 +22,7 @@ class SalesReportService
         [$dateFrom, $dateTo, $preset] = $this->resolveDateRange($request);
         $outletId = $this->singleOutletService->getDefaultOutletId();
         $cashierId = $this->resolveCashierId($request, $user, $outletId);
+        $financialAccessible = $user?->role === 'owner';
 
         $filters = [
             'preset' => $preset,
@@ -31,6 +33,7 @@ class SalesReportService
 
         $transactionQuery = $this->baseTransactionQuery($outletId, $filters);
         $itemQuery = $this->baseItemQuery($outletId, $filters);
+        $expenseQuery = $this->baseExpenseQuery($outletId, $filters);
 
         $summary = [
             'total_transactions' => (clone $transactionQuery)->count(),
@@ -41,11 +44,17 @@ class SalesReportService
             'average_transaction' => (float) ((clone $transactionQuery)->avg('total') ?? 0),
         ];
 
+        $financialReports = $financialAccessible
+            ? $this->buildFinancialReports($outletId, $filters, $transactionQuery, $expenseQuery, $itemQuery)
+            : $this->buildRestrictedFinancialReports();
+
         return [
             'summary' => $summary,
             'topProducts' => $this->topProductsQuery($outletId, $filters)->limit(10)->get(),
             'cashierPerformance' => $this->cashierPerformanceQuery($outletId, $filters)->get(),
             'dailyTrends' => $this->dailyTrendQuery($outletId, $filters)->get(),
+            'financialReports' => $financialReports,
+            'financialAccessible' => $financialAccessible,
             'filters' => $filters,
             'cashiers' => $user?->role === 'owner'
                 ? User::query()
@@ -214,6 +223,83 @@ class SalesReportService
             ->when($filters['cashier_id'], fn (Builder $query) => $query->where('transactions.user_id', $filters['cashier_id']))
             ->when($filters['date_from'], fn (Builder $query) => $query->whereDate('transactions.created_at', '>=', Carbon::parse($filters['date_from'])))
             ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('transactions.created_at', '<=', Carbon::parse($filters['date_to'])));
+    }
+
+    private function baseExpenseQuery(int $outletId, array $filters): Builder
+    {
+        return Expense::query()
+            ->where('outlet_id', $outletId)
+            ->when($filters['date_from'], fn (Builder $query) => $query->whereDate('expense_date', '>=', Carbon::parse($filters['date_from'])))
+            ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('expense_date', '<=', Carbon::parse($filters['date_to'])));
+    }
+
+    private function buildFinancialReports(int $outletId, array $filters, Builder $transactionQuery, Builder $expenseQuery, Builder $itemQuery): array
+    {
+        $revenueBeforeDiscount = (float) (clone $transactionQuery)->sum('subtotal');
+        $discountTotal = (float) (clone $transactionQuery)->sum('discount');
+        $netSales = (float) (clone $transactionQuery)->sum('total');
+        $hpp = (float) (clone $itemQuery)
+            ->selectRaw('SUM(transaction_items.quantity * products.purchase_price) as hpp')
+            ->leftJoin('products', 'transaction_items.product_id', '=', 'products.id')
+            ->value('hpp') ?? 0;
+        $grossProfit = $netSales - $hpp;
+        $operatingExpenses = (float) (clone $expenseQuery)->sum('amount');
+        $netProfit = $grossProfit - $operatingExpenses;
+
+        $cashInCash = (float) (clone $transactionQuery)->where('payment_method', 'cash')->sum('total');
+        $cashInQris = (float) (clone $transactionQuery)->where('payment_method', 'qris')->sum('total');
+        $cashInTotal = $cashInCash + $cashInQris;
+        $cashOutExpenses = $operatingExpenses;
+        $cashFlowNet = $cashInTotal - $cashOutExpenses;
+
+        $expenseByCategory = (clone $expenseQuery)
+            ->selectRaw('category, COUNT(*) as expense_count, SUM(amount) as total_amount')
+            ->groupBy('category')
+            ->orderByDesc('total_amount')
+            ->get();
+
+        return [
+            'profitLoss' => [
+                'revenue_before_discount' => $revenueBeforeDiscount,
+                'discount_total' => $discountTotal,
+                'net_sales' => $netSales,
+                'hpp' => $hpp,
+                'gross_profit' => $grossProfit,
+                'operating_expenses' => $operatingExpenses,
+                'net_profit' => $netProfit,
+            ],
+            'cashFlow' => [
+                'cash_in_cash' => $cashInCash,
+                'cash_in_qris' => $cashInQris,
+                'cash_in_total' => $cashInTotal,
+                'cash_out_expenses' => $cashOutExpenses,
+                'cash_flow_net' => $cashFlowNet,
+                'expense_by_category' => $expenseByCategory,
+            ],
+            'balanceSheet' => [
+                'available' => false,
+                'missing' => [
+                    'saldo kas awal',
+                    'utang dan kewajiban',
+                    'ekuitas/modal',
+                    'aset tetap',
+                ],
+                'note' => 'Neraca belum bisa dihitung akurat karena data saldo kas, utang, dan modal belum tersedia.',
+            ],
+        ];
+    }
+
+    private function buildRestrictedFinancialReports(): array
+    {
+        return [
+            'profitLoss' => null,
+            'cashFlow' => null,
+            'balanceSheet' => [
+                'available' => false,
+                'missing' => [],
+                'note' => 'Laporan keuangan sensitif hanya tersedia untuk owner.',
+            ],
+        ];
     }
 
     private function topProductsQuery(int $outletId, array $filters): Builder

@@ -16,9 +16,9 @@
             <div class="col-md-4 col-lg-2">
                 <label class="form-label fw-semibold" for="type">Jenis</label>
                 <select name="type" id="type" class="form-select">
-                    <option value="">Semua jenis</option>
+                    <option value="">Semua Jenis</option>
                     @foreach ($types as $type)
-                        <option value="{{ $type }}" @selected(request('type') === $type)>{{ str_replace('_', ' ', ucfirst($type)) }}</option>
+                        <option value="{{ $type }}" @selected(request('type') === $type)>{{ $typeOptions[$type]['label'] ?? str_replace('_', ' ', ucfirst($type)) }}</option>
                     @endforeach
                 </select>
             </div>

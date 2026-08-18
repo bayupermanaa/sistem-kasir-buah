@@ -13,6 +13,9 @@
                 <div class="text-muted small mb-1">Produk</div>
                 <div class="fw-bold fs-5">{{ $stock->product?->name }}</div>
                 <div class="text-muted small">{{ $stock->outlet?->name }} &middot; Saat ini {{ number_format((float) $stock->quantity, 3, ',', '.') }}</div>
+                <div class="mt-2">
+                    <span class="badge {{ $stock->statusBadgeClass() }}">{{ $stock->statusLabel() }}</span>
+                </div>
             </div>
             <div class="ui-topbar-chip">
                 <i class="bi bi-exclamation-triangle"></i>

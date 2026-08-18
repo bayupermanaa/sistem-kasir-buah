@@ -82,8 +82,31 @@
         </div>
     </div>
 
+    <div class="ui-surface ui-filter-card p-2 p-lg-3 mb-3">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="#ringkasan-penjualan" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-bar-chart-line me-1"></i>Ringkasan Penjualan
+            </a>
+            @if ($financialAccessible)
+                <a href="#laba-rugi" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-graph-up-arrow me-1"></i>Laba Rugi
+                </a>
+                <a href="#arus-kas" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-cash-stack me-1"></i>Arus Kas
+                </a>
+                <a href="#neraca" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-journal-text me-1"></i>Neraca
+                </a>
+            @else
+                <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2">
+                    <i class="bi bi-shield-lock me-1"></i>Laporan keuangan sensitif hanya untuk owner
+                </span>
+            @endif
+        </div>
+    </div>
+
     <div class="row g-3 mb-3">
-        <div class="col-md-6 col-xl-3">
+        <div class="col-md-6 col-xl-3" id="ringkasan-penjualan">
             <div class="card ui-stat-card h-100">
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
@@ -144,6 +167,187 @@
             </div>
         </div>
     </div>
+
+    @if ($financialAccessible)
+        <div class="row g-3 mb-3">
+            <div class="col-12" id="laba-rugi">
+                <div class="card ui-table-card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h2 class="h5 mb-1">Laporan Laba Rugi</h2>
+                        <div class="text-muted small">Menggunakan transaksi completed, harga beli produk saat ini, dan pengeluaran periode terpilih.</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Pendapatan Penjualan</div>
+                                    <div class="fw-bold fs-4">{{ $formatRupiah($financialReports['profitLoss']['revenue_before_discount']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">(-) Diskon Penjualan</div>
+                                    <div class="fw-bold fs-4 text-danger">-{{ $formatRupiah($financialReports['profitLoss']['discount_total']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Penjualan Bersih</div>
+                                    <div class="fw-bold fs-4 text-success">{{ $formatRupiah($financialReports['profitLoss']['net_sales']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">(-) Harga Pokok Penjualan</div>
+                                    <div class="fw-bold fs-4 text-danger">-{{ $formatRupiah($financialReports['profitLoss']['hpp']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Laba Kotor</div>
+                                    <div class="fw-bold fs-4 {{ $financialReports['profitLoss']['gross_profit'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                        {{ $formatRupiah($financialReports['profitLoss']['gross_profit']) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-4">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">(-) Pengeluaran Operasional</div>
+                                    <div class="fw-bold fs-4 text-danger">-{{ $formatRupiah($financialReports['profitLoss']['operating_expenses']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="ui-surface p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-muted small">Laba Bersih</div>
+                                            <div class="fw-bold fs-3 {{ $financialReports['profitLoss']['net_profit'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                                {{ $formatRupiah($financialReports['profitLoss']['net_profit']) }}
+                                            </div>
+                                        </div>
+                                        <span class="badge {{ $financialReports['profitLoss']['net_profit'] >= 0 ? 'bg-success' : 'bg-danger' }} fs-6">
+                                            {{ $financialReports['profitLoss']['net_profit'] >= 0 ? 'Positif' : 'Negatif' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-muted small mt-3">
+                            Catatan: HPP memakai harga beli produk saat ini, sehingga belum menjadi histori akuntansi yang sepenuhnya tersnapshot.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" id="arus-kas">
+                <div class="card ui-table-card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h2 class="h5 mb-1">Arus Kas</h2>
+                        <div class="text-muted small">Kas masuk dihitung dari transaksi completed berdasarkan metode pembayaran. Pengeluaran menjadi kas keluar.</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6 col-xl-3">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Kas Masuk - Tunai</div>
+                                    <div class="fw-bold fs-4 text-success">{{ $formatRupiah($financialReports['cashFlow']['cash_in_cash']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Kas Masuk - QRIS</div>
+                                    <div class="fw-bold fs-4 text-success">{{ $formatRupiah($financialReports['cashFlow']['cash_in_qris']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Total Kas Masuk</div>
+                                    <div class="fw-bold fs-4">{{ $formatRupiah($financialReports['cashFlow']['cash_in_total']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 col-xl-3">
+                                <div class="ui-surface p-3 h-100">
+                                    <div class="text-muted small mb-1">Total Kas Keluar</div>
+                                    <div class="fw-bold fs-4 text-danger">-{{ $formatRupiah($financialReports['cashFlow']['cash_out_expenses']) }}</div>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="ui-surface p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="text-muted small">Arus Kas Bersih</div>
+                                            <div class="fw-bold fs-3 {{ $financialReports['cashFlow']['cash_flow_net'] >= 0 ? 'text-success' : 'text-danger' }}">
+                                                {{ $formatRupiah($financialReports['cashFlow']['cash_flow_net']) }}
+                                            </div>
+                                        </div>
+                                        <span class="badge {{ $financialReports['cashFlow']['cash_flow_net'] >= 0 ? 'bg-success' : 'bg-danger' }} fs-6">
+                                            {{ $financialReports['cashFlow']['cash_flow_net'] >= 0 ? 'Masuk' : 'Keluar' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if ($financialReports['cashFlow']['expense_by_category']->isNotEmpty())
+                            <div class="table-responsive mt-4">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Kategori Pengeluaran</th>
+                                            <th class="text-end">Jumlah</th>
+                                            <th class="text-end">Nominal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach ($financialReports['cashFlow']['expense_by_category'] as $row)
+                                            <tr>
+                                                <td>{{ $row->category }}</td>
+                                                <td class="text-end">{{ number_format((int) $row->expense_count, 0, ',', '.') }}</td>
+                                                <td class="text-end">{{ $formatRupiah($row->total_amount) }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12" id="neraca">
+                <div class="card ui-table-card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pb-0">
+                        <h2 class="h5 mb-1">Neraca</h2>
+                        <div class="text-muted small">Audit data menentukan apakah neraca bisa ditampilkan dengan benar.</div>
+                    </div>
+                    <div class="card-body">
+                        @if ($financialReports['balanceSheet']['available'])
+                            <div class="alert alert-success border-0 mb-0">
+                                Neraca tersedia.
+                            </div>
+                        @else
+                            <div class="alert alert-warning border-0 mb-3">
+                                {{ $financialReports['balanceSheet']['note'] }}
+                            </div>
+                            <div class="row g-2">
+                                @foreach ($financialReports['balanceSheet']['missing'] as $missingItem)
+                                    <div class="col-md-6 col-lg-4">
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis w-100 text-start px-3 py-2">
+                                            <i class="bi bi-dash-circle me-1"></i>{{ $missingItem }}
+                                        </span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
+        </div>
+    @else
+        <div class="alert alert-info border-0 shadow-sm">
+            Laporan keuangan sensitif dibatasi untuk owner. Cashier tetap dapat melihat ringkasan penjualan yang sudah ada.
+        </div>
+    @endif
 
     <div class="row g-3 mb-3">
         <div class="col-12 col-xl-7">

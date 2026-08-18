@@ -13,6 +13,12 @@
                 <div class="text-muted small mb-1">Produk yang disesuaikan</div>
                 <div class="fw-bold fs-5">{{ $product->name }}</div>
                 <div class="text-muted small">{{ $product->code }} · {{ $product->category?->name }} · {{ $product->unit?->name }}</div>
+                @if ($stock)
+                    <div class="mt-2">
+                        <span class="badge {{ $stock->statusBadgeClass() }}">{{ $stock->statusLabel() }}</span>
+                        <span class="badge ui-badge-soft-warning ms-1">Stok {{ number_format((float) $stock->quantity, 3, ',', '.') }} kg</span>
+                    </div>
+                @endif
             </div>
             <div class="ui-topbar-chip">
                 <i class="bi bi-shop"></i>
@@ -47,9 +53,9 @@
                         <div class="col-md-6">
                             <label class="form-label" for="type">Jenis perubahan</label>
                             <select name="type" id="type" class="form-select @error('type') is-invalid @enderror" required>
-                                <option value="">Pilih jenis perubahan</option>
+                                <option value="">Pilih Jenis Perubahan</option>
                                 @foreach ($types as $type)
-                                    <option value="{{ $type }}" @selected(old('type') === $type)>{{ str_replace('_', ' ', ucfirst($type)) }}</option>
+                                    <option value="{{ $type }}" @selected(old('type') === $type)>{{ $typeOptions[$type]['label'] ?? str_replace('_', ' ', ucfirst($type)) }}</option>
                                 @endforeach
                             </select>
                             @error('type')<div class="invalid-feedback">{{ $message }}</div>@enderror

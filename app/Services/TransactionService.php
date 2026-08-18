@@ -33,7 +33,6 @@ class TransactionService
             return DB::transaction(function () use ($user, $data): Transaction {
                 $outlet = $this->singleOutletService->getDefaultOutlet();
                 $paymentMethod = (string) $data['payment_method'];
-                $discount = $this->normalizeMoney($data['discount'] ?? 0);
                 $items = $data['items'] ?? [];
 
                 if ($items === []) {
@@ -47,7 +46,20 @@ class TransactionService
                 $subtotal = 0.0;
 
                 foreach ($items as $index => $item) {
-                    $product = Product::query()->findOrFail($item['product_id']);
+                    $product = Product::query()->find($item['product_id']);
+
+                    if (! $product) {
+                        throw ValidationException::withMessages([
+                            "items.$index.product_id" => 'Produk tidak ditemukan.',
+                        ]);
+                    }
+
+                    if (! $product->is_active) {
+                        throw ValidationException::withMessages([
+                            "items.$index.product_id" => "Produk {$product->name} tidak aktif dan tidak dapat ditransaksikan.",
+                        ]);
+                    }
+
                     $quantity = $this->resolveQuantity($item);
                     $weightGrams = array_key_exists('weight_grams', $item) && $item['weight_grams'] !== null
                         ? (int) $item['weight_grams']
@@ -75,6 +87,7 @@ class TransactionService
                 }
 
                 $subtotal = round($subtotal, 2);
+                $discount = $this->resolveDiscountAmount($data, $subtotal);
 
                 if ($discount > $subtotal) {
                     throw ValidationException::withMessages([
@@ -209,11 +222,30 @@ class TransactionService
         return round((float) $value, 2);
     }
 
+    private function resolveDiscountAmount(array $data, float $subtotal): float
+    {
+        $discountType = $data['discount_type'] ?? null;
+
+        if ($discountType === null || $discountType === '') {
+            return max(0.0, (float) $this->normalizeMoney($data['discount'] ?? 0));
+        }
+
+        $discountValue = max(0.0, (float) $this->normalizeMoney($data['discount_value'] ?? 0));
+
+        return match ($discountType) {
+            'amount' => $discountValue,
+            'percent' => round($subtotal * ($discountValue / 100), 2),
+            default => 0.0,
+        };
+    }
+
     private function buildFingerprint(User $user, array $data): string
     {
         $cashReceived = $this->normalizeMoney($data['cash_received'] ?? null);
         $discount = $this->normalizeMoney($data['discount'] ?? 0);
         $paymentMethod = (string) ($data['payment_method'] ?? '');
+        $discountType = (string) ($data['discount_type'] ?? '');
+        $discountValue = $this->normalizeMoney($data['discount_value'] ?? 0);
             $items = collect($data['items'] ?? [])
                 ->map(function (array $item): array {
                     return [
@@ -237,6 +269,8 @@ class TransactionService
             'payment_method' => $paymentMethod,
             'cash_received' => $cashReceived,
             'discount' => $discount,
+            'discount_type' => $discountType,
+            'discount_value' => $discountValue,
             'items' => $items,
         ]));
     }

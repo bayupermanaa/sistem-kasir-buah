@@ -18,14 +18,32 @@
 
     <div class="ui-surface ui-filter-card p-3 p-lg-4 mb-3">
         <form method="GET" action="{{ route('products.index') }}" class="row g-3 align-items-end">
-            <div class="col-lg-6">
+            <div class="col-lg-4">
                 <label class="form-label fw-semibold" for="search">Cari produk</label>
                 <div class="input-group input-group-lg">
                     <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
                     <input type="text" id="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Kode atau nama barang">
                 </div>
             </div>
-            <div class="col-lg-6 d-flex gap-2">
+            <div class="col-md-6 col-lg-3">
+                <label class="form-label fw-semibold" for="category_id">Kategori</label>
+                <select name="category_id" id="category_id" class="form-select form-select-lg">
+                    <option value="">Semua Kategori</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}" @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <label class="form-label fw-semibold" for="status">Status Stok</label>
+                <select name="status" id="status" class="form-select form-select-lg">
+                    <option value="">Semua Status</option>
+                    @foreach ($statusOptions as $statusKey => $statusLabel)
+                        <option value="{{ $statusKey }}" @selected($selectedStatus === $statusKey)>{{ $statusLabel }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-12 col-lg-2 d-flex gap-2">
                 <button class="btn btn-primary btn-lg flex-grow-1" type="submit">
                     <i class="bi bi-search me-1"></i>Cari
                 </button>
@@ -82,8 +100,8 @@
                         <tr>
                             <td>
                                 <div class="d-flex align-items-center gap-3">
-                                    @if ($product?->image)
-                                        <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}" class="ui-product-thumb">
+                                    @if ($product?->image_url)
+                                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="ui-product-thumb">
                                     @else
                                         <div class="ui-product-thumb-placeholder">
                                             <i class="bi bi-image"></i>
@@ -104,7 +122,9 @@
                                     {{ $stock->statusLabel() }}
                                 </span>
                                 @if ($stock->isLow())
-                                    <span class="badge ui-badge-stock-low ms-1">Perlu perhatian</span>
+                                    <span class="badge ui-badge-stock-low ms-1">Stok menipis</span>
+                                @elseif ($stock->isOut())
+                                    <span class="badge ui-badge-stock-empty ms-1">Stok habis</span>
                                 @endif
                             </td>
                             <td class="text-end">

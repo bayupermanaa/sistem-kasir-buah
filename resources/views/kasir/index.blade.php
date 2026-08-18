@@ -23,6 +23,7 @@
                 'stock' => (float) $stock->quantity,
                 'stock_label' => $stock->statusLabel(),
                 'stock_badge' => $stock->statusBadgeClass(),
+                'image_url' => $stock->product->image_url,
                 'search' => strtolower(trim(($stock->product->name ?? '').' '.($stock->product->code ?? '').' '.($stock->product->category?->name ?? ''))),
             ];
         })->values();
@@ -121,8 +122,8 @@
                         data-category-id="{{ $product->category_id }}"
                     >
                         <div class="card ui-product-card h-100 border-0">
-                            @if ($product->image)
-                                <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}" class="ui-product-media">
+                            @if ($product->image_url)
+                                <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="ui-product-media">
                             @else
                                 <div class="ui-product-placeholder">
                                     <i class="bi bi-image"></i>
@@ -175,11 +176,9 @@
         <div class="col-lg-4">
             <form method="POST" action="{{ route('kasir.store') }}" id="checkoutForm" class="card ui-cart-panel border-0 shadow-sm">
                 @csrf
-                <input type="hidden" name="payment_method" value="cash">
-                <input type="hidden" name="discount" value="0">
                 <div class="card-header border-0 pb-0">
                     <div class="fw-bold fs-5">Keranjang</div>
-                    <div class="text-muted small">Kelola item lalu lanjutkan ke checkout tunai.</div>
+                    <div class="text-muted small">Kelola item, pilih diskon, lalu lanjutkan ke pembayaran.</div>
                 </div>
 
                 <div class="card-body">
@@ -215,16 +214,75 @@
                         </div>
                         <hr class="ui-soft-divider my-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-semibold">Total</span>
+                            <span class="fw-semibold">Total Bayar</span>
                             <span id="cartTotal" class="ui-cart-total text-primary">Rp 0</span>
                         </div>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="ui-surface bg-white border p-3 mb-3">
+                        <div class="fw-semibold mb-3">Diskon</div>
+                        <div class="row g-2 align-items-end">
+                            <div class="col-5">
+                                <label class="form-label small fw-semibold" for="discount_type">Tipe</label>
+                                <select id="discount_type" name="discount_type" class="form-select">
+                                    <option value="none">Tanpa diskon</option>
+                                    <option value="amount">Nominal</option>
+                                    <option value="percent">Persentase</option>
+                                </select>
+                            </div>
+                            <div class="col-7">
+                                <label class="form-label small fw-semibold" for="discount_value">Nilai</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white" id="discountPrefix">Rp</span>
+                                    <input type="number" min="0" step="0.01" name="discount_value" class="form-control" id="discount_value" value="0">
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="discount" id="discount_amount" value="0">
+                        <div class="text-muted small mt-2" id="discountHint">Gunakan nominal atau persen untuk potongan harga.</div>
+                        @error('discount_value')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
+                    </div>
+
+                    <div class="ui-surface bg-white border p-3 mb-3">
+                        <div class="fw-semibold mb-3">Metode Pembayaran</div>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <label class="ui-method-option active h-100 w-100" for="paymentMethodCash" data-payment-card="cash">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="paymentMethodCash" value="cash" checked>
+                                    <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
+                                        <i class="bi bi-cash-coin"></i>
+                                    </span>
+                                    <span>
+                                        <span class="d-block fw-semibold">Tunai</span>
+                                        <small class="text-muted">Input uang atau Uang Pas</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="col-6">
+                                <label class="ui-method-option h-100 w-100" for="paymentMethodQris" data-payment-card="qris">
+                                    <input class="form-check-input" type="radio" name="payment_method" id="paymentMethodQris" value="qris">
+                                    <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
+                                        <i class="bi bi-qr-code-scan"></i>
+                                    </span>
+                                    <span>
+                                        <span class="d-block fw-semibold">QRIS</span>
+                                        <small class="text-muted">Scan dan konfirmasi</small>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="cashPaymentSection">
                         <label class="form-label fw-semibold" for="cash_received">Uang diterima</label>
                         <div class="input-group input-group-lg">
                             <span class="input-group-text bg-white">Rp</span>
                             <input type="number" min="0" step="0.01" class="form-control @error('cash_received') is-invalid @enderror" name="cash_received" id="cash_received" placeholder="0">
+                        </div>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button type="button" class="btn btn-outline-primary btn-sm" id="cashPasButton">
+                                <i class="bi bi-lightning-charge me-1"></i>Uang Pas
+                            </button>
                         </div>
                         @error('cash_received')<div class="invalid-feedback d-block">{{ $message }}</div>@enderror
                     </div>
@@ -234,36 +292,31 @@
                         <span id="cashChange" class="fw-semibold text-muted">Rp 0</span>
                     </div>
 
-                    <div class="row g-2 mb-3">
-                        <div class="col-6">
-                            <div class="ui-method-option active">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" checked disabled>
-                                    <label class="form-check-label" for="">
-                                        <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
-                                            <i class="bi bi-cash-coin"></i>
-                                        </span>
-                                        <span>
-                                            <span class="d-block fw-semibold">Tunai</span>
-                                            <small class="text-muted">Metode aktif</small>
-                                        </span>
-                                    </label>
+                    <div class="mb-3 d-none" id="qrisSection">
+                        <div class="border rounded-4 p-3 bg-light">
+                            <div class="d-flex align-items-start gap-3 mb-3">
+                                <div class="ui-quick-action-icon flex-shrink-0">
+                                    <i class="bi bi-qr-code-scan fs-4"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">QRIS siap dibayar</div>
+                                    <div class="text-muted small">Tampilkan QR ini ke pembeli, lalu konfirmasi setelah pembayaran diterima.</div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="ui-method-option">
-                                <div class="form-check">
-                                    <input class="form-check-input" type="radio" disabled>
-                                    <label class="form-check-label" for="">
-                                        <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
-                                            <i class="bi bi-qr-code-scan"></i>
-                                        </span>
-                                        <span>
-                                            <span class="d-block fw-semibold">QRIS</span>
-                                            <small class="text-muted">Siap bila diaktifkan</small>
-                                        </span>
-                                    </label>
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-5">
+                                    <div class="ui-qr-placeholder">
+                                        <i class="bi bi-qr-code"></i>
+                                        <span>QRIS</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-7">
+                                    <div class="text-muted small mb-1">Total yang harus dibayar</div>
+                                    <div class="fw-bold fs-4 mb-3" id="qrisTotalDisplay">Rp 0</div>
+                                    <button type="button" class="btn btn-outline-primary w-100" id="qrisConfirmButton">
+                                        <i class="bi bi-check2-circle me-1"></i>Pembayaran Diterima
+                                    </button>
+                                    <div class="text-muted small mt-2">Kembalian otomatis Rp 0 untuk QRIS.</div>
                                 </div>
                             </div>
                         </div>
@@ -310,19 +363,32 @@
 
                     <div class="row g-2 mb-3">
                         <div class="col-4">
-                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-grams="100">0,1 kg</button>
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="0.1">0,1 kg</button>
                         </div>
                         <div class="col-4">
-                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-grams="500">0,5 kg</button>
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="0.25">0,25 kg</button>
                         </div>
                         <div class="col-4">
-                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-grams="700">0,7 kg</button>
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="0.5">0,5 kg</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="0.7">0,7 kg</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="1">1 kg</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="1.5">1,5 kg</button>
+                        </div>
+                        <div class="col-4">
+                            <button type="button" class="btn btn-outline-primary w-100 js-quick-weight" data-kg="2">2 kg</button>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="modalWeightGrams">Berat (gram)</label>
-                        <input type="number" min="1" step="1" id="modalWeightGrams" class="form-control">
+                        <label class="form-label" for="modalWeightKg">Berat (kg)</label>
+                        <input type="number" min="0.001" step="0.001" id="modalWeightKg" class="form-control">
+                        <input type="hidden" id="modalWeightGrams">
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center">
@@ -357,20 +423,6 @@
             const visibleCount = document.getElementById('visibleCount');
             const noProductsMessage = document.getElementById('noProductsMessage');
 
-            const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
-                style: 'currency',
-                currency: 'IDR',
-                maximumFractionDigits: 0
-            }).format(value || 0);
-
-            const formatWeight = (grams) => {
-                const kilogram = grams / 1000;
-                return `${kilogram.toLocaleString('id-ID', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg (${grams.toLocaleString('id-ID')} g)`;
-            };
-
-            const cart = [];
-            let editingIndex = null;
-
             const cartRows = document.getElementById('cartRows');
             const cartHiddenInputs = document.getElementById('cartHiddenInputs');
             const cartEmpty = document.getElementById('cartEmpty');
@@ -379,6 +431,7 @@
             const cartTotal = document.getElementById('cartTotal');
             const cashReceived = document.getElementById('cash_received');
             const cashChange = document.getElementById('cashChange');
+            const cashPasButton = document.getElementById('cashPasButton');
             const checkoutButton = document.getElementById('checkoutButton');
             const checkoutSpinner = document.getElementById('checkoutSpinner');
             const checkoutForm = document.getElementById('checkoutForm');
@@ -387,6 +440,7 @@
             const modalProductName = document.getElementById('modalProductName');
             const modalProductMeta = document.getElementById('modalProductMeta');
             const modalStockBadge = document.getElementById('modalStockBadge');
+            const modalWeightKg = document.getElementById('modalWeightKg');
             const modalWeightGrams = document.getElementById('modalWeightGrams');
             const modalSubtotal = document.getElementById('modalSubtotal');
             const modalStockId = document.getElementById('modalStockId');
@@ -396,9 +450,47 @@
             const modalInfo = document.getElementById('productModalInfo');
             const cartToast = document.getElementById('cartToast');
             const cartToastBody = document.getElementById('cartToastBody');
+            const discountTypeInput = document.getElementById('discount_type');
+            const discountValueInput = document.getElementById('discount_value');
+            const discountPrefix = document.getElementById('discountPrefix');
+            const discountHint = document.getElementById('discountHint');
+            const discountAmountInput = document.getElementById('discount_amount');
+            const paymentMethodCash = document.getElementById('paymentMethodCash');
+            const paymentMethodQris = document.getElementById('paymentMethodQris');
+            const cashPaymentSection = document.getElementById('cashPaymentSection');
+            const qrisSection = document.getElementById('qrisSection');
+            const qrisTotalDisplay = document.getElementById('qrisTotalDisplay');
+            const qrisConfirmButton = document.getElementById('qrisConfirmButton');
+
+            const cart = [];
+            let editingIndex = null;
             let activeProduct = null;
+            let qrisConfirmed = false;
+            let currentTotals = {
+                subtotal: 0,
+                discountAmount: 0,
+                total: 0,
+            };
+
+            const formatRupiah = (value) => new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                maximumFractionDigits: 0,
+            }).format(Number(value || 0));
+
+            const formatKg = (value) => Number(value || 0).toLocaleString('id-ID', {
+                minimumFractionDigits: 3,
+                maximumFractionDigits: 3,
+            });
+
+            const formatGrams = (value) => Number(value || 0).toLocaleString('id-ID');
+
+            const roundKg = (value) => Math.round(Number(value || 0) * 1000) / 1000;
+            const roundMoney = (value) => Math.round((Number(value || 0) + Number.EPSILON) * 100) / 100;
+            const kgToGrams = (value) => Math.max(1, Math.round(roundKg(value) * 1000));
 
             const findProduct = (stockId) => products.find((item) => Number(item.stock_id) === Number(stockId));
+            const getPaymentMethod = () => document.querySelector('input[name="payment_method"]:checked')?.value ?? 'cash';
 
             const setModalMode = (isEditing) => {
                 modalTitle.textContent = isEditing ? 'Edit Produk di Keranjang' : 'Tambah Produk';
@@ -417,77 +509,6 @@
                 }).show();
             };
 
-            const renderCart = () => {
-                cartRows.innerHTML = '';
-                cartHiddenInputs.innerHTML = '';
-
-                let subtotal = 0;
-
-                cart.forEach((item, index) => {
-                    subtotal += item.subtotal;
-
-                    const row = document.createElement('tr');
-                    row.className = 'ui-cart-row';
-                    row.innerHTML = `
-                        <td>
-                            <div class="ui-cart-item-title">${item.name}</div>
-                            <div class="ui-cart-item-meta">${formatWeight(item.weight_grams)} · ${formatRupiah(item.price)}</div>
-                        </td>
-                        <td class="text-end fw-semibold">${formatRupiah(item.subtotal)}</td>
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm" role="group">
-                                <button type="button" class="btn btn-outline-primary js-edit-item" data-index="${index}" title="Ubah" data-bs-toggle="tooltip">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
-                                <button type="button" class="btn btn-outline-danger js-remove-item" data-index="${index}" title="Hapus" data-bs-toggle="tooltip">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    `;
-                    cartRows.appendChild(row);
-
-                    const productInput = document.createElement('input');
-                    productInput.type = 'hidden';
-                    productInput.name = `items[${index}][product_id]`;
-                    productInput.value = item.product_id;
-
-                    const gramsInput = document.createElement('input');
-                    gramsInput.type = 'hidden';
-                    gramsInput.name = `items[${index}][weight_grams]`;
-                    gramsInput.value = item.weight_grams;
-
-                    cartHiddenInputs.appendChild(productInput);
-                    cartHiddenInputs.appendChild(gramsInput);
-                });
-
-                cartEmpty.classList.toggle('d-none', cart.length > 0);
-                cartSubtotal.textContent = formatRupiah(subtotal);
-                cartDiscount.textContent = formatRupiah(0);
-                cartTotal.textContent = formatRupiah(subtotal);
-
-                updateCashChange();
-                if (window.bootstrap?.Tooltip) {
-                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => {
-                        const existing = bootstrap.Tooltip.getInstance(element);
-                        if (existing) {
-                            existing.dispose();
-                        }
-                        new bootstrap.Tooltip(element);
-                    });
-                }
-            };
-
-            const updateCashChange = () => {
-                const totalValue = cart.reduce((sum, item) => sum + item.subtotal, 0);
-                const cashValue = Number(cashReceived.value || 0);
-                const change = cashValue - totalValue;
-                cashChange.textContent = formatRupiah(change > 0 ? change : 0);
-                cashChange.classList.toggle('text-success', change >= 0 && totalValue > 0);
-                cashChange.classList.toggle('text-muted', change < 0 || totalValue === 0);
-                checkoutButton.disabled = cart.length === 0 || cashValue < totalValue;
-            };
-
             const focusSearch = () => {
                 searchInput.focus();
                 searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length);
@@ -504,7 +525,6 @@
                     const showCard = matchesKeyword && matchesCategory;
 
                     card.classList.toggle('d-none', !showCard);
-
                     if (showCard) {
                         visible += 1;
                     }
@@ -512,6 +532,189 @@
 
                 visibleCount.textContent = visible;
                 noProductsMessage.classList.toggle('d-none', visible !== 0);
+            };
+
+            const getCartSubtotal = () => cart.reduce((sum, item) => sum + Number(item.subtotal || 0), 0);
+
+            const getDiscountAmount = (subtotal) => {
+                const mode = discountTypeInput.value;
+                const rawValue = Math.max(0, Number(discountValueInput.value || 0));
+
+                if (mode === 'amount') {
+                    return Math.min(rawValue, subtotal);
+                }
+
+                if (mode === 'percent') {
+                    return roundMoney(subtotal * (Math.min(rawValue, 100) / 100));
+                }
+
+                return 0;
+            };
+
+            const syncDiscountUi = () => {
+                const mode = discountTypeInput.value;
+
+                if (mode === 'none') {
+                    discountPrefix.textContent = 'Rp';
+                    discountHint.textContent = 'Diskon dinonaktifkan. Pilih nominal atau persen jika perlu.';
+                    discountValueInput.value = '0';
+                    discountValueInput.disabled = true;
+                    discountValueInput.removeAttribute('max');
+                } else if (mode === 'amount') {
+                    discountPrefix.textContent = 'Rp';
+                    discountHint.textContent = 'Masukkan nominal diskon dalam rupiah.';
+                    discountValueInput.disabled = false;
+                    discountValueInput.removeAttribute('max');
+                } else {
+                    discountPrefix.textContent = '%';
+                    discountHint.textContent = 'Masukkan diskon persen hingga maksimal 100%.';
+                    discountValueInput.disabled = false;
+                    discountValueInput.setAttribute('max', '100');
+                }
+            };
+
+            const updatePaymentMethodUi = () => {
+                const method = getPaymentMethod();
+
+                document.querySelectorAll('[data-payment-card]').forEach((label) => {
+                    label.classList.toggle('active', label.dataset.paymentCard === method);
+                });
+
+                cashPaymentSection.classList.toggle('d-none', method !== 'cash');
+                qrisSection.classList.toggle('d-none', method !== 'qris');
+
+                if (method === 'qris') {
+                    cashReceived.value = '';
+                    cashReceived.classList.remove('is-invalid');
+                }
+            };
+
+            const updateCashChange = (totalValue = currentTotals.total) => {
+                const method = getPaymentMethod();
+
+                if (method !== 'cash') {
+                    cashChange.textContent = formatRupiah(0);
+                    cashChange.classList.remove('text-success');
+                    cashChange.classList.add('text-muted');
+                    return;
+                }
+
+                const cashValue = Number(cashReceived.value || 0);
+                const change = cashValue - totalValue;
+
+                cashChange.textContent = formatRupiah(change > 0 ? change : 0);
+                cashChange.classList.toggle('text-success', cashValue >= totalValue && totalValue > 0);
+                cashChange.classList.toggle('text-muted', cashValue < totalValue || totalValue === 0);
+            };
+
+            const updateCheckoutState = (totalValue = currentTotals.total) => {
+                const method = getPaymentMethod();
+
+                if (cart.length === 0) {
+                    checkoutButton.disabled = true;
+                    if (method === 'qris') {
+                        qrisConfirmButton.disabled = true;
+                    }
+                    return;
+                }
+
+                if (method === 'cash') {
+                    checkoutButton.disabled = Number(cashReceived.value || 0) < totalValue;
+                    qrisConfirmButton.disabled = true;
+                    return;
+                }
+
+                checkoutButton.disabled = !qrisConfirmed;
+                qrisConfirmButton.disabled = qrisConfirmed;
+                qrisConfirmButton.innerHTML = qrisConfirmed
+                    ? '<i class="bi bi-check2-circle me-1"></i>Pembayaran Diterima'
+                    : '<i class="bi bi-check2-circle me-1"></i>Konfirmasi Pembayaran';
+            };
+
+            const refreshSummary = (resetQris = false) => {
+                const subtotal = getCartSubtotal();
+                const discountAmount = getDiscountAmount(subtotal);
+                const total = roundMoney(Math.max(0, subtotal - discountAmount));
+
+                currentTotals = {
+                    subtotal: roundMoney(subtotal),
+                    discountAmount,
+                    total,
+                };
+
+                cartSubtotal.textContent = formatRupiah(currentTotals.subtotal);
+                cartDiscount.textContent = formatRupiah(currentTotals.discountAmount);
+                cartTotal.textContent = formatRupiah(currentTotals.total);
+                discountAmountInput.value = currentTotals.discountAmount.toFixed(2);
+                qrisTotalDisplay.textContent = formatRupiah(currentTotals.total);
+
+                if (resetQris) {
+                    qrisConfirmed = false;
+                }
+
+                updatePaymentMethodUi();
+                updateCashChange(currentTotals.total);
+                updateCheckoutState(currentTotals.total);
+            };
+
+            const renderCart = (resetQris = true) => {
+                cartRows.innerHTML = '';
+                cartHiddenInputs.innerHTML = '';
+
+                cart.forEach((item, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'ui-cart-row';
+                    row.innerHTML = `
+                        <td>
+                            <div class="ui-cart-item-title">${item.name}</div>
+                            <div class="ui-cart-item-meta">${formatKg(item.quantity_kg)} kg (${formatGrams(item.weight_grams)} g) &middot; ${formatRupiah(item.price)}/kg</div>
+                        </td>
+                        <td class="text-end fw-semibold">${formatRupiah(item.subtotal)}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-primary js-edit-item" data-index="${index}" title="Edit" data-bs-toggle="tooltip">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger js-remove-item" data-index="${index}" title="Hapus" data-bs-toggle="tooltip">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    cartRows.appendChild(row);
+
+                    const productInput = document.createElement('input');
+                    productInput.type = 'hidden';
+                    productInput.name = `items[${index}][product_id]`;
+                    productInput.value = item.product_id;
+
+                    const quantityInput = document.createElement('input');
+                    quantityInput.type = 'hidden';
+                    quantityInput.name = `items[${index}][quantity]`;
+                    quantityInput.value = item.quantity_kg.toFixed(3);
+
+                    const gramsInput = document.createElement('input');
+                    gramsInput.type = 'hidden';
+                    gramsInput.name = `items[${index}][weight_grams]`;
+                    gramsInput.value = item.weight_grams;
+
+                    cartHiddenInputs.appendChild(productInput);
+                    cartHiddenInputs.appendChild(quantityInput);
+                    cartHiddenInputs.appendChild(gramsInput);
+                });
+
+                cartEmpty.classList.toggle('d-none', cart.length > 0);
+                refreshSummary(resetQris);
+
+                if (window.bootstrap?.Tooltip) {
+                    document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((element) => {
+                        const existing = bootstrap.Tooltip.getInstance(element);
+                        if (existing) {
+                            existing.dispose();
+                        }
+                        new bootstrap.Tooltip(element);
+                    });
+                }
             };
 
             const openModalForStock = (stockId, index = null) => {
@@ -525,12 +728,18 @@
                 setModalMode(index !== null);
                 modalStockId.value = product.stock_id;
                 modalProductName.textContent = product.name;
-                modalProductMeta.textContent = `${product.category ?? '-'} · ${product.unit_symbol ?? '-'} · ${formatRupiah(product.price)}/kg`;
+                modalProductMeta.textContent = `${product.category ?? '-'} &middot; ${product.unit_symbol ?? '-'} &middot; ${formatRupiah(product.price)}/kg`;
                 modalStockBadge.className = `badge ${product.stock_badge}`;
                 modalStockBadge.textContent = product.stock_label;
-                modalSubtitle.textContent = `${product.code} · Stok tersedia ${product.stock.toLocaleString('id-ID', { minimumFractionDigits: 3, maximumFractionDigits: 3 })} kg`;
+                modalSubtitle.textContent = `${product.code} &middot; Stok tersedia ${formatKg(product.stock)} kg`;
 
-                modalWeightGrams.value = index !== null && cart[index] ? cart[index].weight_grams : 100;
+                const startingKg = index !== null && cart[index]
+                    ? Number(cart[index].quantity_kg || cart[index].weight_grams / 1000 || 0.1)
+                    : 0.1;
+
+                modalWeightKg.value = roundKg(startingKg).toFixed(3);
+                modalWeightGrams.value = kgToGrams(startingKg);
+                modalWeightKg.classList.remove('is-invalid');
                 updateModalSubtotal();
                 productModal.show();
             };
@@ -540,8 +749,11 @@
                     return;
                 }
 
-                const grams = Number(modalWeightGrams.value || 0);
-                modalSubtotal.textContent = formatRupiah((grams / 1000) * Number(activeProduct.price || 0));
+                const kilograms = roundKg(modalWeightKg.value);
+                const grams = kgToGrams(kilograms);
+
+                modalWeightGrams.value = grams;
+                modalSubtotal.textContent = formatRupiah(kilograms * Number(activeProduct.price || 0));
             };
 
             const saveItem = () => {
@@ -549,40 +761,58 @@
                     return;
                 }
 
-                const grams = Number(modalWeightGrams.value || 0);
-                if (!grams || grams < 1) {
-                    modalWeightGrams.classList.add('is-invalid');
+                const kilograms = roundKg(modalWeightKg.value);
+                const grams = kgToGrams(kilograms);
+
+                if (!kilograms || grams < 1) {
+                    modalWeightKg.classList.add('is-invalid');
                     return;
                 }
 
-                modalWeightGrams.classList.remove('is-invalid');
+                modalWeightKg.classList.remove('is-invalid');
 
-                const subtotal = (grams / 1000) * Number(activeProduct.price || 0);
                 const item = {
                     stock_id: activeProduct.stock_id,
                     product_id: activeProduct.product_id,
                     name: activeProduct.name,
+                    quantity_kg: kilograms,
                     weight_grams: grams,
                     price: Number(activeProduct.price || 0),
-                    subtotal: subtotal,
+                    subtotal: roundMoney(kilograms * Number(activeProduct.price || 0)),
                 };
+
+                let isUpdate = false;
 
                 if (editingIndex === null) {
                     const existingIndex = cart.findIndex((current) => Number(current.product_id) === Number(item.product_id));
                     if (existingIndex >= 0) {
                         cart[existingIndex] = item;
-                        showCartToast('Item keranjang berhasil diperbarui.');
+                        isUpdate = true;
                     } else {
                         cart.push(item);
                     }
                 } else {
                     cart[editingIndex] = item;
-                    showCartToast('Item keranjang berhasil diperbarui.');
+                    isUpdate = true;
                 }
 
                 productModal.hide();
-                renderCart();
+                renderCart(true);
+
+                if (isUpdate) {
+                    showCartToast('Item keranjang berhasil diperbarui.');
+                }
+
                 focusSearch();
+            };
+
+            const setPaymentMethod = (method) => {
+                if (method === 'qris') {
+                    qrisConfirmed = false;
+                }
+
+                updatePaymentMethodUi();
+                refreshSummary(true);
             };
 
             document.querySelectorAll('.js-add-product').forEach((button) => {
@@ -595,12 +825,12 @@
 
             document.querySelectorAll('.js-quick-weight').forEach((button) => {
                 button.addEventListener('click', () => {
-                    modalWeightGrams.value = button.dataset.grams;
+                    modalWeightKg.value = Number(button.dataset.kg || 0).toFixed(3);
                     updateModalSubtotal();
                 });
             });
 
-            modalWeightGrams.addEventListener('input', updateModalSubtotal);
+            modalWeightKg.addEventListener('input', updateModalSubtotal);
             saveCartButton.addEventListener('click', saveItem);
             searchInput.addEventListener('input', filterProducts);
             categoryFilter.addEventListener('change', filterProducts);
@@ -612,10 +842,54 @@
                 focusSearch();
             });
 
+            discountTypeInput.addEventListener('change', () => {
+                syncDiscountUi();
+                qrisConfirmed = false;
+                refreshSummary(true);
+            });
+
+            discountValueInput.addEventListener('input', () => {
+                if (discountTypeInput.value === 'percent' && Number(discountValueInput.value || 0) > 100) {
+                    discountValueInput.value = '100';
+                }
+
+                qrisConfirmed = false;
+                refreshSummary(true);
+            });
+
+            [paymentMethodCash, paymentMethodQris].forEach((radio) => {
+                radio.addEventListener('change', () => {
+                    setPaymentMethod(radio.value);
+                });
+            });
+
+            cashReceived.addEventListener('input', () => {
+                refreshSummary(false);
+            });
+
+            cashPasButton.addEventListener('click', () => {
+                if (getPaymentMethod() !== 'cash') {
+                    return;
+                }
+
+                cashReceived.value = currentTotals.total.toFixed(2);
+                cashReceived.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+
+            qrisConfirmButton.addEventListener('click', () => {
+                if (cart.length === 0) {
+                    return;
+                }
+
+                qrisConfirmed = true;
+                refreshSummary(false);
+            });
+
             modalElement.addEventListener('hidden.bs.modal', () => {
                 activeProduct = null;
                 editingIndex = null;
                 setModalMode(false);
+                modalWeightKg.classList.remove('is-invalid');
             });
 
             cartRows.addEventListener('click', (event) => {
@@ -628,11 +902,9 @@
 
                 if (removeButton) {
                     cart.splice(Number(removeButton.dataset.index), 1);
-                    renderCart();
+                    renderCart(true);
                 }
             });
-
-            cashReceived.addEventListener('input', updateCashChange);
 
             checkoutForm.addEventListener('submit', (event) => {
                 if (cart.length === 0) {
@@ -640,12 +912,22 @@
                     return;
                 }
 
-                const totalValue = cart.reduce((sum, item) => sum + item.subtotal, 0);
-                const cashValue = Number(cashReceived.value || 0);
+                const { total } = currentTotals;
+                const method = getPaymentMethod();
 
-                if (cashValue < totalValue) {
+                if (method === 'cash') {
+                    const cashValue = Number(cashReceived.value || 0);
+                    if (cashValue < total) {
+                        event.preventDefault();
+                        cashReceived.classList.add('is-invalid');
+                        cashReceived.focus();
+                        return;
+                    }
+                }
+
+                if (method === 'qris' && !qrisConfirmed) {
                     event.preventDefault();
-                    cashReceived.classList.add('is-invalid');
+                    qrisConfirmButton.focus();
                     return;
                 }
 
@@ -653,7 +935,9 @@
                 checkoutSpinner.classList.remove('d-none');
             });
 
-            renderCart();
+            syncDiscountUi();
+            updatePaymentMethodUi();
+            renderCart(false);
             filterProducts();
             focusSearch();
         });

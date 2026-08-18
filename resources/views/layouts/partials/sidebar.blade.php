@@ -9,8 +9,8 @@
         ['label' => 'Barang & Stok', 'route' => 'products.index', 'icon' => 'bi-box-seam', 'placeholder' => false],
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
         ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
-        ['label' => 'Pengeluaran', 'route' => null, 'icon' => 'bi-wallet2', 'placeholder' => true],
-        ['label' => 'Stock Opname', 'route' => null, 'icon' => 'bi-clipboard-data', 'placeholder' => true],
+        ['label' => 'Pengeluaran', 'route' => 'expenses.index', 'icon' => 'bi-wallet2', 'placeholder' => false],
+        ['label' => 'Stock Opname', 'route' => 'stock.opnames.index', 'icon' => 'bi-clipboard-data', 'placeholder' => false],
         ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
         ['label' => 'Pengaturan', 'route' => 'pengaturan', 'icon' => 'bi-gear', 'placeholder' => false],
     ];
@@ -20,9 +20,8 @@
         ['label' => 'Barang & Stok', 'route' => 'products.index', 'icon' => 'bi-box-seam', 'placeholder' => false],
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
         ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
+        ['label' => 'Pengeluaran', 'route' => 'expenses.index', 'icon' => 'bi-wallet2', 'placeholder' => false],
         ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
-        ['label' => 'Pengeluaran', 'route' => null, 'icon' => 'bi-wallet2', 'placeholder' => true],
-        ['label' => 'Stock Opname', 'route' => null, 'icon' => 'bi-clipboard-data', 'placeholder' => true],
     ];
 
     $menus = $role === 'owner' ? $ownerMenus : $cashierMenus;
@@ -53,6 +52,8 @@
                         || request()->routeIs('units.*')
                     )) ||
                     ($menu['route'] === 'transactions.index' && request()->routeIs('transactions.*', 'kasir.show', 'kasir.print')) ||
+                    ($menu['route'] === 'expenses.index' && request()->routeIs('expenses.*')) ||
+                    ($menu['route'] === 'stock.opnames.index' && request()->routeIs('stock.opnames.*')) ||
                     ($menu['route'] === 'reports.sales' && request()->routeIs('reports.*')) ||
                     request()->routeIs($menu['route'])
                 );

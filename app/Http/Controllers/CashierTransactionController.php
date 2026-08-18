@@ -32,7 +32,7 @@ class CashierTransactionController extends Controller
             ->with(['product.category', 'product.unit'])
             ->where('outlet_id', $outlet->id)
             ->where('quantity', '>', 0)
-            ->whereHas('product', fn ($query) => $query->where('is_active', true));
+            ->whereHas('product', fn ($query) => $query->active());
 
         if ($search !== '') {
             $stockQuery->whereHas('product', function ($query) use ($search): void {

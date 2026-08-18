@@ -38,6 +38,7 @@ class StockHistoryController extends Controller
             'histories' => $histories,
             'outlet' => $outlet,
             'types' => StockService::ALL_TYPES,
+            'typeOptions' => StockHistory::TYPE_META,
         ]);
     }
 }

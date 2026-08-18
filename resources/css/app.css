@@ -15,16 +15,13 @@
     --ui-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     --ui-radius: 12px;
 }
-
 body {
     background: linear-gradient(180deg, #f4f8f4 0%, #eef4ee 100%);
     color: #24332b;
 }
-
 body.ui-app-shell {
     min-height: 100vh;
 }
-
 .btn {
     border-radius: var(--ui-radius);
     font-weight: 600;
@@ -360,6 +357,26 @@ body.ui-app-shell {
     justify-content: center;
     background: linear-gradient(135deg, rgba(47, 143, 58, 0.08), rgba(242, 140, 40, 0.1));
     color: var(--bs-primary);
+    font-size: 2rem;
+}
+
+.ui-qr-placeholder {
+    aspect-ratio: 1 / 1;
+    min-height: 12rem;
+    border-radius: var(--ui-radius);
+    border: 1px dashed rgba(47, 143, 58, 0.25);
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf7 100%);
+    color: var(--bs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.ui-qr-placeholder i {
     font-size: 2rem;
 }
 

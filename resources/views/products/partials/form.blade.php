@@ -1,5 +1,6 @@
 @php
     $product = $product ?? null;
+    $isEditing = ! empty($product);
 @endphp
 
 <form method="POST" action="{{ $action }}" enctype="multipart/form-data" data-submit-loading>
@@ -22,8 +23,11 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label" for="code">Kode Barang</label>
-                <input type="text" name="code" id="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code', $product->code ?? '') }}" required>
+                <input type="text" name="code" id="code" class="form-control @error('code') is-invalid @enderror" value="{{ old('code', $product->code ?? '') }}" placeholder="{{ $isEditing ? '' : 'Otomatis saat disimpan' }}" readonly>
                 @error('code')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                <div class="form-text">
+                    {{ $isEditing ? 'Kode barang bersifat tetap agar histori transaksi tetap konsisten.' : 'Kode barang dibuat otomatis berdasarkan kategori setelah produk disimpan.' }}
+                </div>
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="name">Nama Barang</label>
@@ -73,9 +77,9 @@
                 <label class="form-label" for="image">Gambar</label>
                 <input type="file" name="image" id="image" class="form-control @error('image') is-invalid @enderror" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                 @error('image')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                @if (!empty($product?->image))
+                @if (!empty($product?->image_url))
                     <div class="mt-2">
-                        <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}" class="ui-product-preview rounded-3 border">
+                        <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="ui-product-preview rounded-3 border">
                     </div>
                 @endif
             </div>

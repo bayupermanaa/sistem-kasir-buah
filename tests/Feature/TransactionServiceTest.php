@@ -168,6 +168,36 @@ class TransactionServiceTest extends TestCase
         $this->assertSame('30000.00', $transactionItem->subtotal);
     }
 
+    public function test_transaction_supports_kilogram_quantity_and_percentage_discount(): void
+    {
+        $outlet = $this->defaultOutlet();
+        $user = $this->ownerUser();
+        $product = $this->createProduct('BRG-013', 'Mangga Manis', 12000);
+        $this->createStock($outlet, $product, 10);
+
+        $service = app(TransactionService::class);
+
+        $transaction = $service->store($user, [
+            'outlet_id' => $outlet->id,
+            'payment_method' => 'qris',
+            'discount_type' => 'percent',
+            'discount_value' => 25,
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => 0.5],
+            ],
+        ]);
+
+        $this->assertSame('6000.00', $transaction->subtotal);
+        $this->assertSame('1500.00', $transaction->discount);
+        $this->assertSame('4500.00', $transaction->total);
+        $this->assertSame('qris', $transaction->payment_method);
+        $this->assertNull($transaction->cash_received);
+        $this->assertNull($transaction->change_amount);
+        $transactionItem = $transaction->items->first();
+        $this->assertNotNull($transactionItem);
+        $this->assertSame('0.500', $transactionItem->quantity);
+        $this->assertSame('6000.00', $transactionItem->subtotal);
+    }
     public function test_transaction_rejects_when_stock_is_not_enough(): void
     {
         $outlet = $this->defaultOutlet();

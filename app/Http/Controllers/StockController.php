@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AdjustStockRequest;
 use App\Http\Requests\UpdateMinimumStockRequest;
+use App\Models\Category;
 use App\Models\OutletProductStock;
 use App\Models\Product;
+use App\Models\StockHistory;
 use App\Services\SingleOutletService;
 use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +26,8 @@ class StockController extends Controller
     public function index(Request $request): View
     {
         $outlet = $this->singleOutletService->getDefaultOutlet();
+        $selectedStatus = $request->string('status')->toString();
+        $selectedCategoryId = $request->filled('category_id') ? $request->integer('category_id') : null;
 
         $stockQuery = OutletProductStock::with(['outlet', 'product.category', 'product.unit'])
             ->where('outlet_id', $outlet->id)
@@ -34,13 +38,47 @@ class StockController extends Controller
                         ->orWhere('code', 'like', "%{$search}%");
                 });
             })
+            ->when($selectedCategoryId, function ($query) use ($selectedCategoryId): void {
+                $query->whereHas('product', function ($productQuery) use ($selectedCategoryId): void {
+                    $productQuery->where('category_id', $selectedCategoryId);
+                });
+            })
             ->latest('id');
 
         $lowStockCount = (clone $stockQuery)->whereColumn('quantity', '<=', 'minimum_stock')->count();
 
+        $stockQuery->when($selectedStatus !== '' && in_array($selectedStatus, ['safe', 'low', 'out'], true), function ($query) use ($selectedStatus): void {
+            if ($selectedStatus === 'out') {
+                $query->where('quantity', '<=', 0);
+
+                return;
+            }
+
+            if ($selectedStatus === 'low') {
+                $query->where('quantity', '>', 0)
+                    ->whereColumn('quantity', '<=', 'minimum_stock');
+
+                return;
+            }
+
+            $query->whereColumn('quantity', '>', 'minimum_stock');
+        });
+
         $stocks = $stockQuery->paginate(10)->withQueryString();
 
-        return view('products.index', compact('stocks', 'lowStockCount', 'outlet'));
+        return view('products.index', [
+            'stocks' => $stocks,
+            'lowStockCount' => $lowStockCount,
+            'outlet' => $outlet,
+            'categories' => Category::orderBy('name')->get(),
+            'selectedStatus' => $selectedStatus,
+            'selectedCategoryId' => $selectedCategoryId,
+            'statusOptions' => [
+                'safe' => 'Aman',
+                'low' => 'Menipis',
+                'out' => 'Habis',
+            ],
+        ]);
     }
 
     public function createAdjustmentForm(Product $product, Request $request): View
@@ -57,6 +95,7 @@ class StockController extends Controller
             'outlet' => $outlet,
             'stock' => $stocks,
             'types' => StockService::MANUAL_TYPES,
+            'typeOptions' => StockHistory::TYPE_META,
         ]);
     }
 

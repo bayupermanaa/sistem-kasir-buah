@@ -65,8 +65,18 @@ class User extends Authenticatable
         return $this->hasMany(StockHistory::class);
     }
 
+    public function stockOpnames(): HasMany
+    {
+        return $this->hasMany(StockOpname::class, 'created_by');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function createdExpenses(): HasMany
+    {
+        return $this->hasMany(Expense::class, 'created_by');
     }
 }

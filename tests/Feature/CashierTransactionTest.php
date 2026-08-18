@@ -104,6 +104,46 @@ class CashierTransactionTest extends TestCase
             ->assertDontSee('Apel Merah');
     }
 
+    public function test_inactive_product_is_hidden_from_cashier_catalog(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-002', 'Salak Premium', 15000);
+        $this->createStock($cashierOutlet, $product, 4);
+
+        $product->update(['is_active' => false]);
+
+        $this->actingAs($cashier)
+            ->get('/kasir')
+            ->assertOk()
+            ->assertDontSee('Salak Premium');
+    }
+
+    public function test_inactive_product_is_rejected_during_manual_transaction_submission(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-003', 'Duku Hitam', 18000);
+        $this->createStock($cashierOutlet, $product, 4);
+
+        $product->update(['is_active' => false]);
+
+        $this->actingAs($cashier)
+            ->post('/kasir', [
+                'payment_method' => 'cash',
+                'cash_received' => 10000,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'weight_grams' => 500,
+                    ],
+                ],
+            ])
+            ->assertSessionHasErrors('items.0.product_id');
+
+        $this->assertDatabaseCount('transactions', 0);
+    }
+
     public function test_cashier_cart_modal_supports_edit_mode_copy(): void
     {
         $cashierOutlet = $this->defaultOutlet();
@@ -121,6 +161,82 @@ class CashierTransactionTest extends TestCase
             ->assertSee('Item keranjang berhasil diperbarui.');
     }
 
+    public function test_cashier_checkout_page_shows_qris_and_uang_pas_controls(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-005', 'Mangga Manis', 16000);
+        $this->createStock($cashierOutlet, $product, 3);
+
+        $this->actingAs($cashier)
+            ->get('/kasir')
+            ->assertOk()
+            ->assertSee('0,1 kg')
+            ->assertSee('Diskon')
+            ->assertSee('QRIS')
+            ->assertSee('Uang Pas');
+    }
+
+    public function test_qris_checkout_succeeds_without_cash_received(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-011', 'Melon', 20000);
+        $this->createStock($cashierOutlet, $product, 5);
+
+        $response = $this->actingAs($cashier)->post('/kasir', [
+            'payment_method' => 'qris',
+            'discount_type' => 'none',
+            'discount_value' => 0,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 0.5,
+                    'weight_grams' => 500,
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success', 'Transaksi berhasil disimpan.');
+
+        $transaction = Transaction::query()->latest('id')->firstOrFail();
+        $transaction->load('items');
+
+        $this->assertSame('qris', $transaction->payment_method);
+        $this->assertSame('10000.00', $transaction->subtotal);
+        $this->assertSame('10000.00', $transaction->total);
+        $this->assertNull($transaction->cash_received);
+        $this->assertNull($transaction->change_amount);
+        $this->assertSame('4.500', OutletProductStock::where('outlet_id', $cashierOutlet->id)->where('product_id', $product->id)->firstOrFail()->quantity);
+    }
+
+    public function test_cash_checkout_allows_exact_payment_with_uang_pas_amount(): void
+    {
+        $cashierOutlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($cashierOutlet);
+        $product = $this->createProduct('BRG-CASH-012', 'Apel Kuning', 10000);
+        $this->createStock($cashierOutlet, $product, 5);
+
+        $response = $this->actingAs($cashier)->post('/kasir', [
+            'payment_method' => 'cash',
+            'cash_received' => 5000,
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 0.5,
+                    'weight_grams' => 500,
+                ],
+            ],
+        ]);
+
+        $response->assertRedirect();
+
+        $transaction = Transaction::query()->latest('id')->firstOrFail();
+        $this->assertSame('5000.00', $transaction->subtotal);
+        $this->assertSame('5000.00', $transaction->total);
+        $this->assertSame('0.00', $transaction->change_amount);
+    }
     public function test_cash_checkout_succeeds_and_shows_receipt_page(): void
     {
         $cashierOutlet = $this->defaultOutlet();
