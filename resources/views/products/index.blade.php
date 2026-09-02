@@ -143,6 +143,12 @@
                                             </button>
                                         </form>
                                     @endif
+                                    @if (auth()->user()->role === 'owner')
+                                        <a href="{{ route('stocks.purchase.create', $product) }}" class="btn btn-sm btn-outline-success ui-action-icon-btn ui-table-action">
+                                            <i class="bi bi-cart-plus"></i>
+                                            Beli Stok
+                                        </a>
+                                    @endif
                                     <a href="{{ route('stocks.adjust.create', $stock->product) }}" class="btn btn-sm btn-primary ui-action-icon-btn ui-table-action">
                                         <i class="bi bi-sliders"></i>
                                         Penyesuaian

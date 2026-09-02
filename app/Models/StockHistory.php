@@ -10,6 +10,24 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 class StockHistory extends Model
 {
     use HasFactory;
+    public const TYPE_GROUPS = [
+        'incoming' => [
+            'label' => 'Stok Masuk',
+            'types' => ['initial_stock', 'restock', 'adjustment_in', 'return_in', 'transfer_in', 'purchase', 'stock_in'],
+        ],
+        'outgoing' => [
+            'label' => 'Stok Keluar',
+            'types' => ['sale', 'adjustment_out', 'damaged', 'processed', 'return_out', 'transfer_out', 'transaction', 'stock_out'],
+        ],
+        'adjustment' => [
+            'label' => 'Penyesuaian',
+            'types' => ['adjustment', 'adjustment_in', 'adjustment_out', 'damaged', 'processed'],
+        ],
+        'stock_opname' => [
+            'label' => 'Stock Opname',
+            'types' => ['stock_opname'],
+        ],
+    ];
 
     public const TYPE_META = [
         'restock' => [

@@ -60,12 +60,13 @@
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="purchase_price">Harga Beli</label>
-                <input type="number" min="0" step="0.01" name="purchase_price" id="purchase_price" class="form-control @error('purchase_price') is-invalid @enderror" value="{{ old('purchase_price', $product->purchase_price ?? '') }}" required>
+                <input type="text" inputmode="numeric" min="0" step="0.01" name="purchase_price" id="purchase_price" class="form-control rupiah-input @error('purchase_price') is-invalid @enderror" value="{{ old('purchase_price', $product->purchase_price ?? '') }}" placeholder="Opsional">
+                <div class="form-text">Kosongkan jika HPP belum tersedia.</div>
                 @error('purchase_price')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6">
                 <label class="form-label" for="selling_price">Harga Jual</label>
-                <input type="number" min="0" step="0.01" name="selling_price" id="selling_price" class="form-control @error('selling_price') is-invalid @enderror" value="{{ old('selling_price', $product->selling_price ?? '') }}" required>
+                <input type="text" inputmode="numeric" min="0" step="0.01" name="selling_price" id="selling_price" class="form-control rupiah-input @error('selling_price') is-invalid @enderror" value="{{ old('selling_price', $product->selling_price ?? '') }}" required>
                 @error('selling_price')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-12">

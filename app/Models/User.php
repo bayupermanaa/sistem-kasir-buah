@@ -55,6 +55,16 @@ class User extends Authenticatable
         return $this->belongsTo(Outlet::class);
     }
 
+    public function stockPurchases(): HasMany
+    {
+        return $this->hasMany(StockPurchase::class);
+    }
+
+    public function assets(): HasMany
+    {
+        return $this->hasMany(Asset::class, 'created_by');
+    }
+
     public function homeRouteName(): string
     {
         return $this->role === 'cashier' ? 'kasir' : 'dashboard';

@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Asset;
 use App\Models\Product;
 use App\Models\Expense;
+use App\Models\OutletProductStock;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
+use App\Models\StockPurchase;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -34,6 +37,7 @@ class SalesReportService
         $transactionQuery = $this->baseTransactionQuery($outletId, $filters);
         $itemQuery = $this->baseItemQuery($outletId, $filters);
         $expenseQuery = $this->baseExpenseQuery($outletId, $filters);
+        $stockPurchaseQuery = $this->baseStockPurchaseQuery($outletId, $filters);
 
         $summary = [
             'total_transactions' => (clone $transactionQuery)->count(),
@@ -45,7 +49,7 @@ class SalesReportService
         ];
 
         $financialReports = $financialAccessible
-            ? $this->buildFinancialReports($outletId, $filters, $transactionQuery, $expenseQuery, $itemQuery)
+            ? $this->buildFinancialReports($outletId, $filters, $transactionQuery, $expenseQuery, $itemQuery, $stockPurchaseQuery)
             : $this->buildRestrictedFinancialReports();
 
         return [
@@ -71,6 +75,22 @@ class SalesReportService
         ];
     }
 
+    public function buildFinancialPage(Request $request, User $user, string $section): array
+    {
+        abort_unless($user->role === 'owner', 403);
+
+        $report = $this->build($request, $user);
+        $outletId = $this->singleOutletService->getDefaultOutletId();
+        $report['section'] = $section;
+        $report['operatingExpenses'] = $this->baseExpenseQuery($outletId, $report['filters'])
+            ->with(['creator:id,name'])
+            ->latest('expense_date')
+            ->latest('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return $report;
+    }
     public function exportFilename(array $filters, string $extension): string
     {
         $from = $filters['date_from'] ?? Carbon::today()->toDateString();
@@ -100,6 +120,14 @@ class SalesReportService
         $lines[] = ['Total Diskon', $formatRupiah($report['summary']['total_discount'])];
         $lines[] = ['Total Berat / Item', $formatWeight($report['summary']['total_weight']).' kg / '.number_format((int) $report['summary']['total_item_lines'], 0, ',', '.').' item'];
         $lines[] = ['Rata-rata Transaksi', $formatRupiah($report['summary']['average_transaction'])];
+        if (($report['financialReports']['cashFlow'] ?? null) !== null) {
+            $lines[] = ['Kas Keluar Operasional', $formatRupiah($report['financialReports']['cashFlow']['cash_out_expenses'] ?? 0)];
+        $lines[] = ['Kas Keluar Pembelian Stok', $formatRupiah($report['financialReports']['cashFlow']['cash_out_stock_purchases'] ?? 0)];
+            $lines[] = ['Kas Keluar Pembelian Aset', $formatRupiah($report['financialReports']['cashFlow']['cash_out_assets'] ?? 0)];
+            $lines[] = ['Persediaan', $formatRupiah($report['financialReports']['balanceSheet']['assets']['inventory_value'] ?? 0)];
+            $lines[] = ['Aset Tetap Aktif', $formatRupiah($report['financialReports']['balanceSheet']['assets']['fixed_asset_value'] ?? 0)];
+            $lines[] = ['Total Aset', $formatRupiah($report['financialReports']['balanceSheet']['assets']['total_assets'] ?? 0)];
+        }
         $lines[] = [];
         $lines[] = ['Produk Terlaris'];
         $lines[] = ['No', 'Produk', 'Kategori', 'Berat / Item', 'Jumlah Transaksi', 'Omzet'];
@@ -225,6 +253,14 @@ class SalesReportService
             ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('transactions.created_at', '<=', Carbon::parse($filters['date_to'])));
     }
 
+    private function baseStockPurchaseQuery(int $outletId, array $filters): Builder
+    {
+        return StockPurchase::query()
+            ->where('outlet_id', $outletId)
+            ->when($filters['date_from'], fn (Builder $query) => $query->whereDate('purchase_date', '>=', Carbon::parse($filters['date_from'])))
+            ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('purchase_date', '<=', Carbon::parse($filters['date_to'])));
+    }
+
     private function baseExpenseQuery(int $outletId, array $filters): Builder
     {
         return Expense::query()
@@ -233,24 +269,44 @@ class SalesReportService
             ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('expense_date', '<=', Carbon::parse($filters['date_to'])));
     }
 
-    private function buildFinancialReports(int $outletId, array $filters, Builder $transactionQuery, Builder $expenseQuery, Builder $itemQuery): array
+    private function buildFinancialReports(int $outletId, array $filters, Builder $transactionQuery, Builder $expenseQuery, Builder $itemQuery, Builder $stockPurchaseQuery): array
     {
         $revenueBeforeDiscount = (float) (clone $transactionQuery)->sum('subtotal');
         $discountTotal = (float) (clone $transactionQuery)->sum('discount');
         $netSales = (float) (clone $transactionQuery)->sum('total');
-        $hpp = (float) (clone $itemQuery)
+        $hppQuery = (clone $itemQuery)->leftJoin('products', 'transaction_items.product_id', '=', 'products.id');
+        $hpp = (float) (clone $hppQuery)
+            ->whereNotNull('products.purchase_price')
             ->selectRaw('SUM(transaction_items.quantity * products.purchase_price) as hpp')
-            ->leftJoin('products', 'transaction_items.product_id', '=', 'products.id')
             ->value('hpp') ?? 0;
-        $grossProfit = $netSales - $hpp;
+        $missingHppProducts = (clone $hppQuery)
+            ->whereNull('products.purchase_price')
+            ->distinct()
+            ->pluck('products.name')
+            ->filter()
+            ->values();
+        $hppComplete = $missingHppProducts->isEmpty();
+        $grossProfit = $hppComplete ? $netSales - $hpp : null;
         $operatingExpenses = (float) (clone $expenseQuery)->sum('amount');
-        $netProfit = $grossProfit - $operatingExpenses;
+        $netProfit = $grossProfit === null ? null : $grossProfit - $operatingExpenses;
 
         $cashInCash = (float) (clone $transactionQuery)->where('payment_method', 'cash')->sum('total');
         $cashInQris = (float) (clone $transactionQuery)->where('payment_method', 'qris')->sum('total');
         $cashInTotal = $cashInCash + $cashInQris;
+        $assetCashOut = (float) (clone $this->assetPurchaseQuery($outletId, $filters))
+            ->whereIn('payment_method', ['cash', 'qris'])
+            ->sum('total_cost');
         $cashOutExpenses = $operatingExpenses;
-        $cashFlowNet = $cashInTotal - $cashOutExpenses;
+        $stockPurchaseCashOut = (float) (clone $stockPurchaseQuery)->whereIn('payment_method', ['cash', 'qris', 'transfer', 'other'])->sum('total_cost');
+        $cashOutTotal = $cashOutExpenses + $stockPurchaseCashOut + $assetCashOut;
+        $cashFlowNet = $cashInTotal - $cashOutTotal;
+
+        $inventoryValue = $this->inventoryValue($outletId);
+        $missingInventoryProducts = $this->inventoryMissingProducts($outletId);
+        $fixedAssetValue = (float) (clone $this->assetPurchaseQuery($outletId, $filters))
+            ->where('status', 'Aktif')
+            ->sum('total_cost');
+        $totalAssets = $inventoryValue + $fixedAssetValue;
 
         $expenseByCategory = (clone $expenseQuery)
             ->selectRaw('category, COUNT(*) as expense_count, SUM(amount) as total_amount')
@@ -267,24 +323,35 @@ class SalesReportService
                 'gross_profit' => $grossProfit,
                 'operating_expenses' => $operatingExpenses,
                 'net_profit' => $netProfit,
+                'hpp_complete' => $hppComplete,
+                'missing_hpp_products' => $missingHppProducts,
             ],
             'cashFlow' => [
                 'cash_in_cash' => $cashInCash,
                 'cash_in_qris' => $cashInQris,
                 'cash_in_total' => $cashInTotal,
                 'cash_out_expenses' => $cashOutExpenses,
+                'cash_out_stock_purchases' => $stockPurchaseCashOut,
+                'cash_out_assets' => $assetCashOut,
+                'cash_out_total' => $cashOutTotal,
                 'cash_flow_net' => $cashFlowNet,
                 'expense_by_category' => $expenseByCategory,
             ],
             'balanceSheet' => [
-                'available' => false,
+                'available' => true,
+                'assets' => [
+                    'inventory_value' => $inventoryValue,
+                    'inventory_complete' => $missingInventoryProducts->isEmpty(),
+                    'missing_inventory_products' => $missingInventoryProducts,
+                    'fixed_asset_value' => $fixedAssetValue,
+                    'total_assets' => $totalAssets,
+                ],
                 'missing' => [
                     'saldo kas awal',
                     'utang dan kewajiban',
                     'ekuitas/modal',
-                    'aset tetap',
                 ],
-                'note' => 'Neraca belum bisa dihitung akurat karena data saldo kas, utang, dan modal belum tersedia.',
+                'note' => 'Persediaan dihitung dari stok Ã— harga beli. Aset tetap dihitung dari total biaya aset berstatus Aktif. Kewajiban dan modal masih placeholder audit.',
             ],
         ];
     }
@@ -300,6 +367,37 @@ class SalesReportService
                 'note' => 'Laporan keuangan sensitif hanya tersedia untuk owner.',
             ],
         ];
+    }
+
+    private function assetPurchaseQuery(int $outletId, array $filters): Builder
+    {
+        return Asset::query()
+            ->forOutlet($outletId)
+            ->when($filters['date_from'], fn (Builder $query) => $query->whereDate('purchase_date', '>=', Carbon::parse($filters['date_from'])))
+            ->when($filters['date_to'], fn (Builder $query) => $query->whereDate('purchase_date', '<=', Carbon::parse($filters['date_to'])));
+    }
+
+    private function inventoryValue(int $outletId): float
+    {
+        return (float) OutletProductStock::query()
+            ->join('products', 'outlet_product_stocks.product_id', '=', 'products.id')
+            ->where('outlet_product_stocks.outlet_id', $outletId)
+            ->where('outlet_product_stocks.quantity', '>', 0)
+            ->selectRaw('SUM(outlet_product_stocks.quantity * products.purchase_price) as inventory_value')
+            ->value('inventory_value') ?? 0;
+    }
+
+    private function inventoryMissingProducts(int $outletId): \Illuminate\Support\Collection
+    {
+        return OutletProductStock::query()
+            ->join('products', 'outlet_product_stocks.product_id', '=', 'products.id')
+            ->where('outlet_product_stocks.outlet_id', $outletId)
+            ->where('outlet_product_stocks.quantity', '>', 0)
+            ->whereNull('products.purchase_price')
+            ->distinct()
+            ->pluck('products.name')
+            ->filter()
+            ->values();
     }
 
     private function topProductsQuery(int $outletId, array $filters): Builder

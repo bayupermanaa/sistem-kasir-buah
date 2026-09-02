@@ -57,6 +57,11 @@ class Product extends Model
         return $this->hasMany(StockOpnameItem::class);
     }
 
+    public function stockPurchases(): HasMany
+    {
+        return $this->hasMany(StockPurchase::class);
+    }
+
     public function transactionItems(): HasMany
     {
         return $this->hasMany(TransactionItem::class);

@@ -1,4 +1,4 @@
-﻿@php
+@php
     $formatRupiah = fn ($value) => 'Rp '.number_format((float) $value, 0, ',', '.');
     $formatTanggal = fn ($value) => \Illuminate\Support\Carbon::parse($value)->translatedFormat('d/m/Y');
     $formatTanggalJam = fn ($value) => \Illuminate\Support\Carbon::parse($value)->translatedFormat('d/m/Y H:i');
@@ -68,6 +68,46 @@
             </tr>
         </table>
     </div>
+
+    @if (($financialReports['cashFlow'] ?? null) !== null)
+        <div class="section">
+            <div class="section-title">Arus Kas & Neraca</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Komponen</th>
+                        <th class="text-right" style="width:22%;">Nominal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Kas Keluar Operasional</td>
+                    <tr>
+                        <td>Kas Keluar Pembelian Stok</td>
+                        <td class="text-right">-{{ $formatRupiah($financialReports['cashFlow']['cash_out_stock_purchases'] ?? 0) }}</td>
+                    </tr>
+                        <td class="text-right">-{{ $formatRupiah($financialReports['cashFlow']['cash_out_expenses']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Kas Keluar Pembelian Aset</td>
+                        <td class="text-right">-{{ $formatRupiah($financialReports['cashFlow']['cash_out_assets']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Persediaan</td>
+                        <td class="text-right">{{ $formatRupiah($financialReports['balanceSheet']['assets']['inventory_value']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Aset Tetap Aktif</td>
+                        <td class="text-right">{{ $formatRupiah($financialReports['balanceSheet']['assets']['fixed_asset_value']) }}</td>
+                    </tr>
+                    <tr>
+                        <td>Total Aset</td>
+                        <td class="text-right">{{ $formatRupiah($financialReports['balanceSheet']['assets']['total_assets']) }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    @endif
 
     <div class="section">
         <div class="section-title">Produk Terlaris</div>

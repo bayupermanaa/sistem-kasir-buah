@@ -17,8 +17,8 @@
                 <label class="form-label fw-semibold" for="type">Jenis</label>
                 <select name="type" id="type" class="form-select">
                     <option value="">Semua Jenis</option>
-                    @foreach ($types as $type)
-                        <option value="{{ $type }}" @selected(request('type') === $type)>{{ $typeOptions[$type]['label'] ?? str_replace('_', ' ', ucfirst($type)) }}</option>
+                    @foreach ($types as $type => $option)
+                        <option value="{{ $type }}" @selected(request('type') === $type)>{{ $option['label'] }}</option>
                     @endforeach
                 </select>
             </div>

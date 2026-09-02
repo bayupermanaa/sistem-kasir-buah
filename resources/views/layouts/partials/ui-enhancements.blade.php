@@ -109,4 +109,25 @@
             });
         });
     </script>
+    <script>
+        (function () {
+            if (window.__rupiahInputsInitialized) return;
+            window.__rupiahInputsInitialized = true;
+            const format = function (value) {
+                const digits = String(value || '').replace(/\D/g, '');
+                return digits ? new Intl.NumberFormat('id-ID').format(Number(digits)) : '';
+            };
+            document.querySelectorAll(".rupiah-input").forEach(function (input) {
+                input.value = format(input.value);
+                input.addEventListener("input", function () { input.value = format(input.value); });
+                const form = input.form;
+                if (form && form.dataset.rupiahReady !== "true") {
+                    form.dataset.rupiahReady = "true";
+                    form.addEventListener("submit", function () {
+                        form.querySelectorAll(".rupiah-input").forEach(function (field) { field.value = field.value.replace(/\D/g, ""); });
+                    });
+                }
+            });
+        }());
+    </script>
 @endif

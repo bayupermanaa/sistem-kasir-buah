@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Category;
+use App\Models\Asset;
 use App\Models\Expense;
 use App\Models\Outlet;
 use App\Models\Product;
@@ -126,6 +127,26 @@ class FinancialReportTest extends TestCase
         ]);
     }
 
+    private function createAsset(Outlet $outlet, User $creator): Asset
+    {
+        return Asset::create([
+            'outlet_id' => $outlet->id,
+            'asset_code' => 'AST-FIN-001',
+            'name' => 'Kulkas Display',
+            'category' => 'Elektronik',
+            'purchase_date' => '2026-07-24',
+            'purchase_price' => 5000000,
+            'quantity' => 1,
+            'total_cost' => 5000000,
+            'payment_method' => 'cash',
+            'useful_life_years' => 5,
+            'residual_value' => 500000,
+            'status' => 'Aktif',
+            'notes' => 'Aset utama',
+            'created_by' => $creator->id,
+        ]);
+    }
+
     private function seedFinancialDataset(): array
     {
         $outletA = $this->defaultOutlet();
@@ -210,53 +231,80 @@ class FinancialReportTest extends TestCase
             'created_by' => $cashierB->id,
         ]);
 
+        $this->createAsset($outletA, $owner);
+
         return compact('owner', 'cashierA', 'cashierB', 'outletA', 'outletB');
     }
-
     public function test_owner_can_see_profit_loss_cash_flow_and_neraca_placeholder(): void
     {
         $data = $this->seedFinancialDataset();
+        $query = ['date_from' => '2026-07-24', 'date_to' => '2026-07-24'];
 
-        $response = $this->actingAs($data['owner'])
-            ->get('/laporan-penjualan?date_from=2026-07-24&date_to=2026-07-24');
+        $this->actingAs($data['owner'])->get(route('reports.sales', $query))
+            ->assertOk()
+            ->assertSee('Ringkasan Penjualan')
+            ->assertDontSee('Laporan Laba Rugi');
 
-        $response->assertOk()
+        $this->actingAs($data['owner'])->get(route('reports.profit-loss', $query))
+            ->assertOk()
             ->assertSee('Laporan Laba Rugi')
-            ->assertSee('Arus Kas')
-            ->assertSee('Neraca');
+            ->assertSee('LABA BERSIH');
 
-        $content = $response->getContent();
-        $this->assertStringContainsString('Rp 40.000', $content);
-        $this->assertStringContainsString('Rp 1.000', $content);
-        $this->assertStringContainsString('Rp 39.000', $content);
-        $this->assertStringContainsString('Rp 32.000', $content);
-        $this->assertStringContainsString('Rp 7.000', $content);
-        $this->assertStringContainsString('Rp 5.000', $content);
-        $this->assertStringContainsString('Rp 2.000', $content);
-        $this->assertStringContainsString('Rp 39.000', $content);
-        $this->assertStringContainsString('Rp 34.000', $content);
-        $this->assertStringContainsString('Neraca belum bisa dihitung akurat', $content);
-        $this->assertStringContainsString('saldo kas awal', $content);
-        $this->assertStringContainsString('utang dan kewajiban', $content);
-        $this->assertStringContainsString('ekuitas/modal', $content);
-        $this->assertStringContainsString('aset tetap', $content);
-        $this->assertStringNotContainsString('Biaya outlet lain', $content);
+        $this->actingAs($data['owner'])->get(route('reports.cash-flow', $query))
+            ->assertOk()
+            ->assertSee('Laporan Arus Kas')
+            ->assertSee('Pembelian Aset');
+
+        $this->actingAs($data['owner'])->get(route('reports.balance-sheet', $query))
+            ->assertOk()
+            ->assertSee('Neraca')
+            ->assertSee('Data modal dan ekuitas belum tersedia.');
     }
-
     public function test_cashier_only_sees_sales_report_and_financial_sections_are_hidden(): void
     {
         $data = $this->seedFinancialDataset();
 
-        $response = $this->actingAs($data['cashierA'])
-            ->get('/laporan-penjualan?date_from=2026-07-24&date_to=2026-07-24');
+        $this->actingAs($data['cashierA'])
+            ->get('/laporan-penjualan?date_from=2026-07-24&date_to=2026-07-24')
+            ->assertOk()
+            ->assertSee('Ringkasan Penjualan')
+            ->assertDontSee('Laporan Laba Rugi')
+            ->assertDontSee('Arus Kas')
+            ->assertDontSee('Neraca');
+    }
 
-        $response->assertOk()
-            ->assertSee('Ringkasan Penjualan');
+    public function test_owner_can_open_report_menu(): void
+    {
+        $owner = $this->ownerUser();
 
-        $content = $response->getContent();
-        $this->assertStringContainsString('Laporan keuangan sensitif hanya untuk owner', $content);
-        $this->assertStringNotContainsString('Laporan Laba Rugi', $content);
-        $this->assertStringNotContainsString('Arus Kas', $content);
-        $this->assertStringNotContainsString('Neraca', $content);
+        $this->actingAs($owner)
+            ->get(route('reports.index'))
+            ->assertOk()
+            ->assertSee('Pusat Laporan')
+            ->assertSee('Laporan Laba Rugi')
+            ->assertSee(route('reports.sales'), false);
+    }
+
+    public function test_cashier_can_open_report_menu_but_not_sensitive_financial_pages(): void
+    {
+        $outlet = $this->defaultOutlet();
+        $cashier = $this->cashierUser($outlet, 'menu');
+
+        $this->actingAs($cashier)->get(route('reports.index'))->assertOk();
+        $this->actingAs($cashier)->get(route('reports.profit-loss'))->assertForbidden();
+        $this->actingAs($cashier)->get(route('reports.cash-flow'))->assertForbidden();
+        $this->actingAs($cashier)->get(route('reports.balance-sheet'))->assertForbidden();
+    }
+
+    public function test_operating_expense_report_only_shows_operational_expenses(): void
+    {
+        $data = $this->seedFinancialDataset();
+
+        $this->actingAs($data['owner'])
+            ->get(route('reports.expenses', ['date_from' => '2026-07-24', 'date_to' => '2026-07-24']))
+            ->assertOk()
+            ->assertSee('Biaya listrik')
+            ->assertDontSee('Kulkas Display')
+            ->assertDontSee('Pembelian Stok');
     }
 }

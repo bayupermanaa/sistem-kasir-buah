@@ -3,21 +3,21 @@
 @tailwind utilities;
 
 :root {
-    --bs-primary: #2f8f3a;
-    --bs-primary-rgb: 47, 143, 58;
+    --bs-primary: #2563eb;
+    --bs-primary-rgb: 37, 99, 235;
     --bs-success: #2f8f3a;
     --bs-success-rgb: 47, 143, 58;
     --bs-warning: #f28c28;
     --bs-warning-rgb: 242, 140, 40;
     --ui-accent: #f28c28;
     --ui-surface: #ffffff;
-    --ui-border: #e5ebe4;
+    --ui-border: #e3e9f2;
     --ui-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
     --ui-radius: 12px;
 }
 body {
-    background: linear-gradient(180deg, #f4f8f4 0%, #eef4ee 100%);
-    color: #24332b;
+    background: linear-gradient(180deg, #f5f8ff 0%, #eef3fb 100%);
+    color: #1e293b;
 }
 body.ui-app-shell {
     min-height: 100vh;
@@ -38,7 +38,7 @@ body.ui-app-shell {
 
 .btn-primary,
 .btn-success {
-    box-shadow: 0 10px 18px rgba(47, 143, 58, 0.18);
+    box-shadow: 0 10px 18px rgba(37, 99, 235, 0.18);
 }
 
 .btn-outline-primary {
@@ -69,7 +69,7 @@ body.ui-app-shell {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(47, 143, 58, 0.14), rgba(242, 140, 40, 0.14));
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.14), rgba(242, 140, 40, 0.12));
     color: var(--bs-primary);
     flex: 0 0 auto;
 }
@@ -86,7 +86,7 @@ body.ui-app-shell {
 }
 
 .ui-surface-soft {
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbf8 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
 }
 
 .ui-section-header {
@@ -175,7 +175,7 @@ body.ui-app-shell {
 
 .ui-empty-state-panel {
     border: 1px dashed rgba(47, 143, 58, 0.22);
-    background: linear-gradient(180deg, #ffffff 0%, #f8fbf8 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
     border-radius: var(--ui-radius);
 }
 
@@ -232,7 +232,7 @@ body.ui-app-shell {
 }
 
 .ui-badge-stock-low {
-    background: rgba(242, 140, 40, 0.14);
+    background: rgba(242, 140, 40, 0.12);
     color: #a35d12;
 }
 
@@ -457,7 +457,7 @@ body.ui-app-shell {
 }
 
 .ui-badge-soft-warning {
-    background: rgba(242, 140, 40, 0.14);
+    background: rgba(242, 140, 40, 0.12);
     color: #a35d12;
 }
 
@@ -682,7 +682,7 @@ body.ui-app-shell {
 }
 
 .ui-role-badge-cashier {
-    background: rgba(242, 140, 40, 0.14);
+    background: rgba(242, 140, 40, 0.12);
     color: #b45309;
 }
 
@@ -694,4 +694,26 @@ body.ui-app-shell {
     .ui-cart-panel {
         position: static;
     }
+}
+
+.ui-report-card {
+    border: 1px solid var(--ui-border);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+
+.ui-report-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 16px 32px rgba(37, 99, 235, .12);
+}
+
+.ui-report-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(37, 99, 235, .1);
+    color: var(--bs-primary);
+    font-size: 1.25rem;
 }

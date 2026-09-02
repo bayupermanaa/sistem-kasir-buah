@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AdjustStockRequest;
 use App\Http\Requests\UpdateMinimumStockRequest;
+use App\Http\Requests\StoreStockPurchaseRequest;
 use App\Models\Category;
 use App\Models\OutletProductStock;
 use App\Models\Product;
@@ -116,6 +117,28 @@ class StockController extends Controller
         return redirect()->route('products.index')->with('success', 'Penyesuaian stok berhasil disimpan.');
     }
 
+    public function createPurchase(Product $product): View
+    {
+        $outlet = $this->singleOutletService->getDefaultOutlet();
+        $stock = OutletProductStock::where('outlet_id', $outlet->id)->where('product_id', $product->id)->first();
+
+        return view('stocks.purchase', compact('product', 'stock', 'outlet'));
+    }
+
+    public function storePurchase(StoreStockPurchaseRequest $request, Product $product): RedirectResponse
+    {
+        $outlet = $this->singleOutletService->getDefaultOutlet();
+        $this->stockService->purchaseStock(
+            $request->user(), $outlet, $product,
+            (float) $request->input('quantity'),
+            $request->filled('unit_cost') ? (float) $request->input('unit_cost') : null,
+            $request->date('purchase_date')->toDateString(),
+            $request->filled('payment_method') ? $request->string('payment_method')->toString() : null,
+            $request->filled('notes') ? $request->string('notes')->toString() : null,
+        );
+
+        return redirect()->route('products.index')->with('success', 'Pembelian stok berhasil dicatat.');
+    }
     public function editMinimumStock(OutletProductStock $outletProductStock): View
     {
         return view('stocks.minimum-stock', [

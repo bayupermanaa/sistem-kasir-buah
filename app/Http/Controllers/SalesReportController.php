@@ -10,6 +10,23 @@ use Illuminate\View\View;
 
 class SalesReportController extends Controller
 {
+    public function menu(): View
+    {
+        return view('reports.index');
+    }
+
+    public function financial(Request $request, SalesReportService $salesReportService, string $section): View
+    {
+        $view = match ($section) {
+            'expenses' => 'reports.expenses',
+            'profit-loss' => 'reports.profit-loss',
+            'cash-flow' => 'reports.cash-flow',
+            'balance-sheet' => 'reports.balance-sheet',
+            default => abort(404),
+        };
+
+        return view($view, $salesReportService->buildFinancialPage($request, $request->user(), $section));
+    }
     public function index(Request $request, SalesReportService $salesReportService): View
     {
         return view('reports.sales', $salesReportService->build($request, $request->user()));

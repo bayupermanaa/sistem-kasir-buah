@@ -102,7 +102,7 @@ class StockOpnameService
                         'quantity_before' => $systemQuantity,
                         'quantity_change' => $difference,
                         'quantity_after' => $physicalQuantity,
-                        'reason' => 'Stock Opname',
+                        'reason' => 'Selisih hasil pemeriksaan stok',
                         'notes' => $notes,
                     ]);
                 }

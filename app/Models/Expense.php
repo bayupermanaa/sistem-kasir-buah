@@ -12,7 +12,10 @@ class Expense extends Model
     use HasFactory;
 
     public const CATEGORIES = [
-        'Belanja Stok',
+        'Plastik',
+        'Kemasan',
+        'Kotak Hampers',
+        'Pita',
         'Listrik',
         'Air',
         'Transportasi',
@@ -20,6 +23,9 @@ class Expense extends Model
         'Sewa',
         'Perlengkapan',
         'Perawatan',
+        'Gas',
+        'Internet',
+        'Kebersihan',
         'Operasional',
         'Lainnya',
     ];

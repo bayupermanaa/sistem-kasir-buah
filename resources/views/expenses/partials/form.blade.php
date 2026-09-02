@@ -16,6 +16,7 @@
             <div>
                 <h2>Informasi Pengeluaran</h2>
                 <p>Data outlet dan pencatat diatur otomatis mengikuti pengguna yang login.</p>
+                <div class="alert alert-info py-2 px-3 small mt-2 mb-0">Gunakan Pengeluaran untuk biaya operasional seperti plastik, kemasan, listrik, transportasi, dan biaya usaha lainnya. Pembelian stok dan aset dicatat melalui alur masing-masing.</div>
             </div>
         </div>
 
@@ -47,7 +48,7 @@
                 <label class="form-label" for="amount">Nominal</label>
                 <div class="input-group">
                     <span class="input-group-text">Rp</span>
-                    <input type="number" min="0.01" step="0.01" name="amount" id="amount" class="form-control @error('amount') is-invalid @enderror" value="{{ old('amount', $expense->amount ?? '') }}" required>
+                    <input type="text" inputmode="numeric" min="0.01" step="0.01" name="amount" id="amount" class="form-control rupiah-input @error('amount') is-invalid @enderror" value="{{ old('amount', $expense->amount ?? '') }}" required>
                     @error('amount')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
             </div>

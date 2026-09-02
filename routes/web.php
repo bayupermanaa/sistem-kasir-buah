@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AssetController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CashierTransactionController;
 use App\Http\Controllers\TransactionHistoryController;
@@ -12,7 +13,9 @@ use App\Http\Controllers\StockOpnameController;
 use App\Http\Controllers\StockController;
 use App\Http\Controllers\StockHistoryController;
 use App\Http\Controllers\UnitController;
+use App\Services\SalesReportService;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 Route::redirect('/', '/login');
 
@@ -29,12 +32,18 @@ Route::middleware(['auth', 'role:owner,cashier'])->group(function () {
     Route::get('/pengeluaran', [ExpenseController::class, 'index'])->name('expenses.index');
     Route::get('/pengeluaran/create', [ExpenseController::class, 'create'])->name('expenses.create');
     Route::post('/pengeluaran', [ExpenseController::class, 'store'])->name('expenses.store');
+    Route::get('/laporan', [SalesReportController::class, 'menu'])->name('reports.index');
     Route::get('/laporan-penjualan', [SalesReportController::class, 'index'])->name('reports.sales');
     Route::get('/laporan-penjualan/export/pdf', [SalesReportController::class, 'exportPdf'])->name('reports.sales.export.pdf');
     Route::get('/laporan-penjualan/export/excel', [SalesReportController::class, 'exportExcel'])->name('reports.sales.export.excel');
 });
 
 Route::middleware(['auth', 'role:owner'])->group(function () {
+    Route::get('/laporan-pengeluaran', fn (Request $request, SalesReportService $service) => app(SalesReportController::class)->financial($request, $service, 'expenses'))->name('reports.expenses');
+    Route::get('/laporan-laba-rugi', fn (Request $request, SalesReportService $service) => app(SalesReportController::class)->financial($request, $service, 'profit-loss'))->name('reports.profit-loss');
+    Route::get('/laporan-arus-kas', fn (Request $request, SalesReportService $service) => app(SalesReportController::class)->financial($request, $service, 'cash-flow'))->name('reports.cash-flow');
+    Route::get('/neraca', fn (Request $request, SalesReportService $service) => app(SalesReportController::class)->financial($request, $service, 'balance-sheet'))->name('reports.balance-sheet');
+
     Route::get('/pengaturan', [SettingsController::class, 'index'])->name('pengaturan');
     Route::put('/pengaturan/kasir/{cashier}/password', [SettingsController::class, 'updateCashierPassword'])
         ->whereNumber('cashier')
@@ -58,8 +67,18 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::post('/stock-opname', [StockOpnameController::class, 'store'])->name('stock.opnames.store');
     Route::get('/stock-opname/{stockOpname}', [StockOpnameController::class, 'show'])->name('stock.opnames.show');
 
+    Route::get('/barang-stok/{product}/purchase', [StockController::class, 'createPurchase'])->name('stocks.purchase.create');
+    Route::post('/barang-stok/{product}/purchase', [StockController::class, 'storePurchase'])->name('stocks.purchase.store');
     Route::get('/barang-stok/{outletProductStock}/minimum-stock', [StockController::class, 'editMinimumStock'])->name('stocks.minimum.edit');
     Route::put('/barang-stok/{outletProductStock}/minimum-stock', [StockController::class, 'updateMinimumStock'])->name('stocks.minimum.update');
+
+    Route::get('/aset', [AssetController::class, 'index'])->name('assets.index');
+    Route::get('/aset/create', [AssetController::class, 'create'])->name('assets.create');
+    Route::post('/aset', [AssetController::class, 'store'])->name('assets.store');
+    Route::get('/aset/{asset}', [AssetController::class, 'show'])->name('assets.show');
+    Route::get('/aset/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
+    Route::put('/aset/{asset}', [AssetController::class, 'update'])->name('assets.update');
+    Route::delete('/aset/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
 });
 
 Route::middleware(['auth', 'role:owner'])->group(function () {

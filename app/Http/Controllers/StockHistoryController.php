@@ -27,7 +27,11 @@ class StockHistoryController extends Controller
                         ->orWhere('code', 'like', "%{$search}%");
                 });
             })
-            ->when($request->filled('type'), fn ($query) => $query->where('type', $request->string('type')->toString()))
+            ->when($request->filled('type'), function ($query) use ($request): void {
+                $type = $request->string('type')->toString();
+                $types = StockHistory::TYPE_GROUPS[$type]['types'] ?? [$type];
+                $query->whereIn('type', $types);
+            })
             ->when($request->filled('date_from'), fn ($query) => $query->whereDate('created_at', '>=', $request->date('date_from')))
             ->when($request->filled('date_to'), fn ($query) => $query->whereDate('created_at', '<=', $request->date('date_to')))
             ->latest();
@@ -37,8 +41,7 @@ class StockHistoryController extends Controller
         return view('stock-histories.index', [
             'histories' => $histories,
             'outlet' => $outlet,
-            'types' => StockService::ALL_TYPES,
-            'typeOptions' => StockHistory::TYPE_META,
+            'types' => StockHistory::TYPE_GROUPS,
         ]);
     }
 }

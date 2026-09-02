@@ -6,6 +6,7 @@ use App\Models\Outlet;
 use App\Models\OutletProductStock;
 use App\Models\Product;
 use App\Models\StockHistory;
+use App\Models\StockPurchase;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -140,6 +141,46 @@ class StockService
         );
     }
 
+    public function purchaseStock(User $user, Outlet $outlet, Product $product, float $quantity, ?float $unitCost, string $purchaseDate, ?string $paymentMethod, ?string $notes = null): StockPurchase
+    {
+        $this->assertUserCanAccessOutlet($user, $outlet);
+
+        return DB::transaction(function () use ($user, $outlet, $product, $quantity, $unitCost, $purchaseDate, $paymentMethod, $notes): StockPurchase {
+            $stock = $this->lockStock($outlet->id, $product->id);
+            $before = (float) $stock->quantity;
+            $after = round($before + $quantity, 3);
+            $stock->quantity = $after;
+            $stock->save();
+
+            $purchase = StockPurchase::create([
+                'outlet_id' => $outlet->id,
+                'product_id' => $product->id,
+                'user_id' => $user->id,
+                'quantity' => $quantity,
+                'unit_cost' => $unitCost,
+                'total_cost' => $unitCost === null ? null : round($quantity * $unitCost, 2),
+                'purchase_date' => $purchaseDate,
+                'payment_method' => $paymentMethod,
+                'notes' => $notes,
+            ]);
+
+            StockHistory::create([
+                'outlet_id' => $outlet->id,
+                'product_id' => $product->id,
+                'user_id' => $user->id,
+                'reference_type' => StockPurchase::class,
+                'reference_id' => $purchase->id,
+                'type' => 'restock',
+                'quantity_before' => $before,
+                'quantity_change' => $quantity,
+                'quantity_after' => $after,
+                'reason' => 'Pembelian stok',
+                'notes' => $notes,
+            ]);
+
+            return $purchase->load(['outlet', 'product', 'user']);
+        });
+    }
     public function updateMinimumStock(User $user, OutletProductStock $stock, float $minimumStock): OutletProductStock
     {
         $this->assertUserCanAccessOutlet($user, $stock->outlet);

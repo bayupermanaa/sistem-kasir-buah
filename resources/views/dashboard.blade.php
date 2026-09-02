@@ -80,14 +80,14 @@
         </div>
 
         <div class="col-md-6 col-xl-3">
-            <a href="{{ route('reports.sales') }}" class="card ui-quick-link-card ui-quick-action border-0 shadow-sm">
+            <a href="{{ route('reports.index') }}" class="card ui-quick-link-card ui-quick-action border-0 shadow-sm">
                 <div class="card-body">
                     <div class="ui-quick-action-icon">
                         <i class="bi bi-graph-up-arrow fs-4"></i>
                     </div>
                     <div>
-                        <div class="fw-semibold">Laporan Penjualan</div>
-                        <div class="text-muted small">Pantau omzet dan tren</div>
+                        <div class="fw-semibold">Laporan</div>
+                        <div class="text-muted small">Akses seluruh laporan toko</div>
                     </div>
                 </div>
             </a>
@@ -102,6 +102,20 @@
                     <div>
                         <div class="fw-semibold">Pengeluaran</div>
                         <div class="text-muted small">Catat biaya operasional</div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <a href="{{ route('assets.index') }}" class="card ui-quick-link-card ui-quick-action border-0 shadow-sm">
+                <div class="card-body">
+                    <div class="ui-quick-action-icon">
+                        <i class="bi bi-safe2 fs-4"></i>
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Aset</div>
+                        <div class="text-muted small">Catat investasi aset toko</div>
                     </div>
                 </div>
             </a>

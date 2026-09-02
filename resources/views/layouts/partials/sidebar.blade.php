@@ -10,8 +10,8 @@
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
         ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
         ['label' => 'Pengeluaran', 'route' => 'expenses.index', 'icon' => 'bi-wallet2', 'placeholder' => false],
-        ['label' => 'Stock Opname', 'route' => 'stock.opnames.index', 'icon' => 'bi-clipboard-data', 'placeholder' => false],
-        ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
+        ['label' => 'Aset', 'route' => 'assets.index', 'icon' => 'bi-safe2', 'placeholder' => false],
+        ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'bi-bar-chart-line', 'placeholder' => false],
         ['label' => 'Pengaturan', 'route' => 'pengaturan', 'icon' => 'bi-gear', 'placeholder' => false],
     ];
 
@@ -21,7 +21,7 @@
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
         ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
         ['label' => 'Pengeluaran', 'route' => 'expenses.index', 'icon' => 'bi-wallet2', 'placeholder' => false],
-        ['label' => 'Laporan Penjualan', 'route' => 'reports.sales', 'icon' => 'bi-graph-up-arrow', 'placeholder' => false],
+        ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'bi-bar-chart-line', 'placeholder' => false],
     ];
 
     $menus = $role === 'owner' ? $ownerMenus : $cashierMenus;
@@ -53,8 +53,9 @@
                     )) ||
                     ($menu['route'] === 'transactions.index' && request()->routeIs('transactions.*', 'kasir.show', 'kasir.print')) ||
                     ($menu['route'] === 'expenses.index' && request()->routeIs('expenses.*')) ||
+                    ($menu['route'] === 'assets.index' && request()->routeIs('assets.*')) ||
                     ($menu['route'] === 'stock.opnames.index' && request()->routeIs('stock.opnames.*')) ||
-                    ($menu['route'] === 'reports.sales' && request()->routeIs('reports.*')) ||
+                    ($menu['route'] === 'reports.index' && request()->routeIs('reports.*')) ||
                     request()->routeIs($menu['route'])
                 );
             @endphp
