@@ -306,7 +306,12 @@ class SalesReportService
         $fixedAssetValue = (float) (clone $this->assetPurchaseQuery($outletId, $filters))
             ->where('status', 'Aktif')
             ->sum('total_cost');
-        $totalAssets = $inventoryValue + $fixedAssetValue;
+        $knownCurrentAssets = $inventoryValue;
+        $knownAssetsTotal = $knownCurrentAssets + $fixedAssetValue;
+        $cashBalanceAvailable = false;
+        $liabilitiesAvailable = false;
+        $equityAvailable = false;
+        $accountingComplete = $missingInventoryProducts->isEmpty() && $cashBalanceAvailable && $liabilitiesAvailable && $equityAvailable;
 
         $expenseByCategory = (clone $expenseQuery)
             ->selectRaw('category, COUNT(*) as expense_count, SUM(amount) as total_amount')
@@ -339,19 +344,33 @@ class SalesReportService
             ],
             'balanceSheet' => [
                 'available' => true,
+                'accounting_complete' => $accountingComplete,
                 'assets' => [
+                    'current_assets' => $knownCurrentAssets,
+                    'cash' => null,
                     'inventory_value' => $inventoryValue,
                     'inventory_complete' => $missingInventoryProducts->isEmpty(),
                     'missing_inventory_products' => $missingInventoryProducts,
                     'fixed_asset_value' => $fixedAssetValue,
-                    'total_assets' => $totalAssets,
+                    'known_assets_total' => $knownAssetsTotal,
+                    'total_assets' => $accountingComplete ? $knownAssetsTotal : null,
                 ],
+                'liabilities' => [
+                    'total' => null,
+                    'available' => $liabilitiesAvailable,
+                ],
+                'equity' => [
+                    'total' => null,
+                    'available' => $equityAvailable,
+                ],
+                'total_liabilities_equity' => null,
+                'balanced' => false,
                 'missing' => [
-                    'saldo kas awal',
+                    'saldo kas awal / kas berjalan',
                     'utang dan kewajiban',
                     'ekuitas/modal',
                 ],
-                'note' => 'Persediaan dihitung dari stok Ã— harga beli. Aset tetap dihitung dari total biaya aset berstatus Aktif. Kewajiban dan modal masih placeholder audit.',
+                'note' => 'Neraca menampilkan aset yang dapat diukur dari stok dan aset aktif. Saldo kas, kewajiban, dan modal belum memiliki sumber pencatatan yang valid sehingga total aset dan keseimbangan belum dapat diverifikasi.',
             ],
         ];
     }
@@ -363,6 +382,12 @@ class SalesReportService
             'cashFlow' => null,
             'balanceSheet' => [
                 'available' => false,
+                'accounting_complete' => false,
+                'assets' => [],
+                'liabilities' => [],
+                'equity' => [],
+                'total_liabilities_equity' => null,
+                'balanced' => false,
                 'missing' => [],
                 'note' => 'Laporan keuangan sensitif hanya tersedia untuk owner.',
             ],

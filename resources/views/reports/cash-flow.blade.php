@@ -1,5 +1,7 @@
 <x-app-layout>
 <x-slot name="header">@include('layouts.partials.page-header',['title'=>'Laporan Arus Kas','subtitle'=>'Pemisahan kas masuk dan kas keluar berdasarkan sumbernya.','icon'=>'bi-arrow-left-right'])</x-slot>
+
+@include('reports.partials.back-link')
 @include('reports.partials.financial-filter')
 @php $formatRupiah=fn($v)=>'Rp '.number_format((float)$v,0,',','.'); $cf=$financialReports['cashFlow']; @endphp
 <div class="row g-3 mb-4"><div class="col-md-4"><div class="ui-stat-card card h-100"><div class="card-body"><span class="ui-summary-label">Total Kas Masuk</span><div class="ui-summary-value text-success">{{ $formatRupiah($cf['cash_in_total']) }}</div></div></div></div><div class="col-md-4"><div class="ui-stat-card card h-100"><div class="card-body"><span class="ui-summary-label">Total Kas Keluar</span><div class="ui-summary-value text-danger">{{ $formatRupiah($cf['cash_out_total']) }}</div></div></div></div><div class="col-md-4"><div class="ui-stat-card card h-100"><div class="card-body"><span class="ui-summary-label">Arus Kas Bersih</span><div class="ui-summary-value">{{ $formatRupiah($cf['cash_flow_net']) }}</div></div></div></div></div>

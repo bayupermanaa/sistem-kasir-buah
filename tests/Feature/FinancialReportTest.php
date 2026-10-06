@@ -258,7 +258,7 @@ class FinancialReportTest extends TestCase
         $this->actingAs($data['owner'])->get(route('reports.balance-sheet', $query))
             ->assertOk()
             ->assertSee('Neraca')
-            ->assertSee('Data modal dan ekuitas belum tersedia.');
+            ->assertSee('Sumber modal belum tersedia.');
     }
     public function test_cashier_only_sees_sales_report_and_financial_sections_are_hidden(): void
     {
@@ -306,5 +306,18 @@ class FinancialReportTest extends TestCase
             ->assertSee('Biaya listrik')
             ->assertDontSee('Kulkas Display')
             ->assertDontSee('Pembelian Stok');
+    }
+
+    public function test_balance_sheet_marks_missing_accounts_without_fake_totals(): void
+    {
+        $data = $this->seedFinancialDataset();
+
+        $this->actingAs($data['owner'])
+            ->get(route('reports.balance-sheet', ['date_from' => '2026-07-24', 'date_to' => '2026-07-24']))
+            ->assertOk()
+            ->assertSee('Aset Lancar Terukur')
+            ->assertSee('Total Kewajiban + Ekuitas')
+            ->assertSee('Belum tersedia')
+            ->assertSee('belum dapat diverifikasi');
     }
 }

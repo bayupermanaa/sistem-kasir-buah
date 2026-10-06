@@ -1,5 +1,7 @@
 <x-app-layout>
 <x-slot name="header">@include('layouts.partials.page-header',['title'=>'Laporan Laba Rugi','subtitle'=>'Pendapatan, HPP, biaya operasional, dan laba bersih.','icon'=>'bi-calculator'])</x-slot>
+
+@include('reports.partials.back-link')
 @include('reports.partials.financial-filter')
 @php $formatRupiah=fn($v)=>'Rp '.number_format((float)$v,0,',','.'); $pl=$financialReports['profitLoss']; @endphp
 @if(!$pl['hpp_complete'])<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Perhitungan laba belum lengkap karena terdapat produk tanpa harga beli: {{ $pl['missing_hpp_products']->implode(', ') }}.</div>@endif

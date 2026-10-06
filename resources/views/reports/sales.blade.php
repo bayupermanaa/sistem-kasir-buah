@@ -7,6 +7,8 @@
         ])
     </x-slot>
 
+@include('reports.partials.back-link')
+
     @php
         $formatRupiah = fn ($value) => 'Rp '.number_format((float) $value, 0, ',', '.');
         $formatTanggal = fn ($value) => $value ? \Illuminate\Support\Carbon::parse($value)->format('d/m/Y') : '-';
@@ -30,7 +32,7 @@
                 <a href="{{ route('reports.sales.export.pdf', request()->query()) }}" class="btn btn-outline-danger">
                     <i class="bi bi-file-earmark-pdf me-1"></i>Export PDF
                 </a>
-                <a href="{{ route('reports.sales.export.excel', request()->query()) }}" class="btn btn-outline-success">
+                <a href="{{ route('reports.sales.export.excel', request()->query()) }}" class="btn btn-outline-primary">
                     <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export Excel
                 </a>
             </div>

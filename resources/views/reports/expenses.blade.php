@@ -1,5 +1,7 @@
 <x-app-layout>
 <x-slot name="header">@include('layouts.partials.page-header',['title'=>'Laporan Pengeluaran','subtitle'=>'Biaya operasional toko pada periode yang dipilih.','icon'=>'bi-wallet2'])</x-slot>
+
+@include('reports.partials.back-link')
 @include('reports.partials.financial-filter')
 @php $formatRupiah=fn($v)=>'Rp '.number_format((float)$v,0,',','.'); @endphp
 <div class="row g-3 mb-4"><div class="col-md-6"><div class="ui-stat-card card h-100"><div class="card-body"><span class="ui-summary-label">Total Pengeluaran Operasional</span><div class="ui-summary-value">{{ $formatRupiah($financialReports['cashFlow']['cash_out_expenses']) }}</div><small class="text-muted">{{ $reportPeriod }}</small></div></div></div><div class="col-md-6"><div class="ui-stat-card card h-100"><div class="card-body"><span class="ui-summary-label">Jumlah Catatan</span><div class="ui-summary-value">{{ number_format($operatingExpenses->total(),0,',','.') }}</div><small class="text-muted">Expense operasional</small></div></div></div></div>
