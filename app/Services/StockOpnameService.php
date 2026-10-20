@@ -7,6 +7,7 @@ use App\Models\StockHistory;
 use App\Models\StockOpname;
 use App\Models\StockOpnameItem;
 use App\Models\User;
+use App\Support\DecimalMath;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -61,7 +62,13 @@ class StockOpnameService
                         ]);
                     }
 
-                    $physicalQuantity = round((float) ($item['physical_quantity'] ?? 0), 3);
+                    try {
+                        $physicalQuantity = DecimalMath::parse($item['physical_quantity'] ?? 0, 3);
+                    } catch (\InvalidArgumentException) {
+                        throw ValidationException::withMessages([
+                            "items.$index.physical_quantity" => 'Stok fisik harus berupa angka dengan maksimal 3 desimal.',
+                        ]);
+                    }
 
                     if ($physicalQuantity < 0) {
                         throw ValidationException::withMessages([
@@ -70,8 +77,8 @@ class StockOpnameService
                     }
 
                     $stock = $this->stockService->lockStock($outlet->id, $product->id);
-                    $systemQuantity = round((float) $stock->quantity, 3);
-                    $difference = round($physicalQuantity - $systemQuantity, 3);
+                    $systemQuantity = DecimalMath::parse($stock->quantity, 3);
+                    $difference = $physicalQuantity - $systemQuantity;
                     $notes = isset($item['notes']) && trim((string) $item['notes']) !== ''
                         ? trim((string) $item['notes'])
                         : null;
@@ -79,17 +86,17 @@ class StockOpnameService
                     StockOpnameItem::create([
                         'stock_opname_id' => $opname->id,
                         'product_id' => $product->id,
-                        'system_quantity' => $systemQuantity,
-                        'physical_quantity' => $physicalQuantity,
-                        'difference' => $difference,
+                        'system_quantity' => DecimalMath::format($systemQuantity, 3),
+                        'physical_quantity' => DecimalMath::format($physicalQuantity, 3),
+                        'difference' => DecimalMath::format($difference, 3),
                         'notes' => $notes,
                     ]);
 
-                    if ($difference === 0.0) {
+                    if ($difference === 0) {
                         continue;
                     }
 
-                    $stock->quantity = $physicalQuantity;
+                    $stock->quantity = DecimalMath::format($physicalQuantity, 3);
                     $stock->save();
 
                     StockHistory::create([
@@ -99,9 +106,9 @@ class StockOpnameService
                         'reference_type' => StockOpname::class,
                         'reference_id' => $opname->id,
                         'type' => 'stock_opname',
-                        'quantity_before' => $systemQuantity,
-                        'quantity_change' => $difference,
-                        'quantity_after' => $physicalQuantity,
+                        'quantity_before' => DecimalMath::format($systemQuantity, 3),
+                        'quantity_change' => DecimalMath::format($difference, 3),
+                        'quantity_after' => DecimalMath::format($physicalQuantity, 3),
                         'reason' => 'Selisih hasil pemeriksaan stok',
                         'notes' => $notes,
                     ]);
@@ -127,7 +134,7 @@ class StockOpnameService
             ->map(function (array $item): array {
                 return [
                     'product_id' => (int) ($item['product_id'] ?? 0),
-                    'physical_quantity' => round((float) ($item['physical_quantity'] ?? 0), 3),
+                    'physical_quantity' => $this->fingerprintQuantity($item['physical_quantity'] ?? 0),
                     'notes' => trim((string) ($item['notes'] ?? '')),
                 ];
             })
@@ -145,5 +152,14 @@ class StockOpnameService
             'notes' => (string) ($data['notes'] ?? ''),
             'items' => $items,
         ]));
+    }
+
+    private function fingerprintQuantity(mixed $value): string
+    {
+        try {
+            return DecimalMath::format(DecimalMath::parse($value, 3), 3);
+        } catch (\InvalidArgumentException) {
+            return '0.000';
+        }
     }
 }

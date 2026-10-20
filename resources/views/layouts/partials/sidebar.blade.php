@@ -8,9 +8,12 @@
         ['label' => 'Kasir', 'route' => 'kasir', 'icon' => 'bi-cash-coin', 'placeholder' => false],
         ['label' => 'Barang & Stok', 'route' => 'products.index', 'icon' => 'bi-box-seam', 'placeholder' => false],
         ['label' => 'Riwayat Stok', 'route' => 'stock.histories.index', 'icon' => 'bi-clock-history', 'placeholder' => false],
+        ['label' => 'Stock Opname', 'route' => 'stock.opnames.index', 'icon' => 'bi-clipboard-check', 'placeholder' => false],
         ['label' => 'Riwayat Transaksi', 'route' => 'transactions.index', 'icon' => 'bi-receipt-cutoff', 'placeholder' => false],
         ['label' => 'Pengeluaran', 'route' => 'expenses.index', 'icon' => 'bi-wallet2', 'placeholder' => false],
         ['label' => 'Aset', 'route' => 'assets.index', 'icon' => 'bi-safe2', 'placeholder' => false],
+        ['label' => 'Supplier', 'route' => 'suppliers.index', 'icon' => 'bi-truck', 'placeholder' => false],
+        ['label' => 'Utang Usaha', 'route' => 'payables.index', 'icon' => 'bi-journal-text', 'placeholder' => false],
         ['label' => 'Laporan', 'route' => 'reports.index', 'icon' => 'bi-bar-chart-line', 'placeholder' => false],
         ['label' => 'Pengaturan', 'route' => 'pengaturan', 'icon' => 'bi-gear', 'placeholder' => false],
     ];

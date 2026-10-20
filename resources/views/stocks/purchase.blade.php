@@ -35,9 +35,29 @@
                                 <option value="cash" @selected(old('payment_method') === 'cash')>Tunai</option>
                                 <option value="qris" @selected(old('payment_method') === 'qris')>QRIS</option>
                                 <option value="transfer" @selected(old('payment_method') === 'transfer')>Transfer</option>
-                                <option value="other" @selected(old('payment_method') === 'other')>Lainnya</option>
+                                <option value="credit" @selected(old('payment_method') === 'credit')>Kredit / Utang Supplier</option>
                             </select>
                             @error('payment_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6 credit-fields d-none">
+                            <label class="form-label" for="supplier_id">Supplier</label>
+                            <select name="supplier_id" id="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror">
+                                <option value="">Pilih supplier</option>
+                                @foreach ($suppliers as $supplier)
+                                    <option value="{{ $supplier->id }}" @selected((string) old('supplier_id') === (string) $supplier->id)>{{ $supplier->name }}</option>
+                                @endforeach
+                            </select>
+                            @error('supplier_id')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6 credit-fields d-none">
+                            <label class="form-label" for="invoice_number">Nomor faktur <span class="text-muted">(opsional)</span></label>
+                            <input type="text" name="invoice_number" id="invoice_number" class="form-control @error('invoice_number') is-invalid @enderror" value="{{ old('invoice_number') }}">
+                            @error('invoice_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                        </div>
+                        <div class="col-md-6 credit-fields d-none">
+                            <label class="form-label" for="due_date">Jatuh tempo</label>
+                            <input type="date" name="due_date" id="due_date" class="form-control @error('due_date') is-invalid @enderror" value="{{ old('due_date') }}">
+                            @error('due_date')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
                             <label class="form-label" for="notes">Catatan</label>
@@ -45,7 +65,7 @@
                             @error('notes')<div class="invalid-feedback">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    <div class="alert alert-info mt-4 mb-0">Pembelian stok menambah persediaan dan dicatat sebagai kas keluar pembelian stok, bukan Pengeluaran operasional.</div>
+                    <div class="alert alert-info mt-4 mb-0" id="purchaseHelp">Pembelian stok menambah persediaan dan dicatat sebagai kas keluar pembelian stok, bukan Pengeluaran operasional.</div>
                     <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
                         <a href="{{ route('products.index') }}" class="btn btn-outline-secondary ui-action-icon-btn"><i class="bi bi-arrow-left"></i>Kembali</a>
                         <button type="submit" class="btn btn-primary ui-action-icon-btn" data-submit-loading-button><i class="bi bi-check2-circle"></i>Simpan Pembelian</button>
@@ -54,4 +74,22 @@
             </div>
         </div>
     </div>
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const method = document.getElementById('payment_method');
+                const fields = document.querySelectorAll('.credit-fields');
+                const help = document.getElementById('purchaseHelp');
+                const toggle = () => {
+                    const credit = method.value === 'credit';
+                    fields.forEach((field) => field.classList.toggle('d-none', !credit));
+                    help.textContent = credit
+                        ? 'Pembelian kredit menambah stok dan utang supplier tanpa mengurangi kas.'
+                        : 'Pembelian stok menambah persediaan dan dicatat sebagai kas keluar pembelian stok, bukan Pengeluaran operasional.';
+                };
+                method.addEventListener('change', toggle);
+                toggle();
+            });
+        </script>
+    @endpush
 </x-app-layout>

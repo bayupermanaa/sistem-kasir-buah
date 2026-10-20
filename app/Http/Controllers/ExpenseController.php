@@ -6,14 +6,20 @@ use App\Http\Requests\StoreExpenseRequest;
 use App\Http\Requests\UpdateExpenseRequest;
 use App\Models\Expense;
 use App\Services\SingleOutletService;
+use App\Services\ExpenseAccountingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\View\View;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ExpenseController extends Controller
 {
-    public function __construct(private readonly SingleOutletService $singleOutletService)
+    public function __construct(
+        private readonly SingleOutletService $singleOutletService,
+        private readonly ExpenseAccountingService $expenseAccountingService,
+    )
     {
     }
 
@@ -70,7 +76,7 @@ class ExpenseController extends Controller
     {
         $outlet = $this->singleOutletService->getDefaultOutlet();
 
-        Expense::create([
+        $attributes = [
             'outlet_id' => $outlet->id,
             'expense_date' => $request->date('expense_date'),
             'category' => $request->string('category')->toString(),
@@ -78,7 +84,15 @@ class ExpenseController extends Controller
             'amount' => $request->input('amount'),
             'notes' => $request->filled('notes') ? $request->string('notes')->toString() : null,
             'created_by' => $request->user()->id,
-        ]);
+        ];
+        if (Schema::hasColumn('expenses', 'payment_method')) {
+            $attributes['payment_method'] = $request->filled('payment_method') ? $request->string('payment_method')->toString() : null;
+        }
+
+        DB::transaction(function () use ($attributes): void {
+            $expense = Expense::create($attributes);
+            $this->expenseAccountingService->recordExpense($expense->load('creator'));
+        });
 
         return redirect()->route('expenses.index')->with('success', 'Pengeluaran berhasil ditambahkan.');
     }
@@ -96,14 +110,22 @@ class ExpenseController extends Controller
     public function update(UpdateExpenseRequest $request, Expense $expense): RedirectResponse
     {
         $this->ensureDefaultOutletExpense($expense);
+        abort_unless(! $this->expenseAccountingService->hasJournal($expense), 422, 'Pengeluaran yang sudah dijurnal tidak dapat diedit.');
 
-        $expense->update([
+        $attributes = [
             'expense_date' => $request->date('expense_date'),
             'category' => $request->string('category')->toString(),
             'description' => $request->string('description')->toString(),
             'amount' => $request->input('amount'),
             'notes' => $request->filled('notes') ? $request->string('notes')->toString() : null,
-        ]);
+        ];
+        if (Schema::hasColumn('expenses', 'payment_method')) {
+            $attributes['payment_method'] = $request->filled('payment_method') ? $request->string('payment_method')->toString() : null;
+        }
+        DB::transaction(function () use ($expense, $attributes): void {
+            $expense->update($attributes);
+            $this->expenseAccountingService->recordExpense($expense->fresh()->load('creator'));
+        });
 
         return redirect()->route('expenses.index')->with('success', 'Pengeluaran berhasil diperbarui.');
     }
@@ -111,6 +133,7 @@ class ExpenseController extends Controller
     public function destroy(Expense $expense): RedirectResponse
     {
         $this->ensureDefaultOutletExpense($expense);
+        abort_unless(! $this->expenseAccountingService->hasJournal($expense), 422, 'Pengeluaran yang sudah dijurnal tidak dapat dihapus.');
 
         $expense->delete();
 

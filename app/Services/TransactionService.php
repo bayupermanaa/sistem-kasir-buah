@@ -7,7 +7,9 @@ use App\Models\StockHistory;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
 use App\Models\User;
+use App\Support\DecimalMath;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -15,22 +17,33 @@ class TransactionService
 {
     public function __construct(
         private readonly StockService $stockService,
-        private readonly SingleOutletService $singleOutletService
+        private readonly SingleOutletService $singleOutletService,
+        private readonly SalesAccountingService $salesAccountingService,
     ) {
     }
 
     public function store(User $user, array $data): Transaction
     {
         $fingerprint = $this->buildFingerprint($user, $data);
+        $idempotencyKey = filled($data['idempotency_key'] ?? null)
+            ? (string) $data['idempotency_key']
+            : $fingerprint;
+        $cacheKey = 'transaction:'.$user->id.':'.$idempotencyKey;
 
-        if (! Cache::add($fingerprint, now()->timestamp, 10)) {
+        if ($this->idempotencyColumnExists() && Transaction::query()->where('idempotency_key', $idempotencyKey)->exists()) {
+            throw ValidationException::withMessages([
+                'transaction' => 'Transaksi yang sama sudah pernah diproses.',
+            ]);
+        }
+
+        if (! Cache::add($cacheKey, now()->timestamp, 10)) {
             throw ValidationException::withMessages([
                 'transaction' => 'Transaksi yang sama sedang atau baru saja diproses.',
             ]);
         }
 
         try {
-            return DB::transaction(function () use ($user, $data): Transaction {
+            return DB::transaction(function () use ($user, $data, $idempotencyKey): Transaction {
                 $outlet = $this->singleOutletService->getDefaultOutlet();
                 $paymentMethod = (string) $data['payment_method'];
                 $items = $data['items'] ?? [];
@@ -43,7 +56,7 @@ class TransactionService
 
                 $invoiceNumber = $this->generateInvoiceNumber();
                 $preparedItems = [];
-                $subtotal = 0.0;
+                $subtotal = 0;
 
                 foreach ($items as $index => $item) {
                     $product = Product::query()->find($item['product_id']);
@@ -64,11 +77,12 @@ class TransactionService
                     $weightGrams = array_key_exists('weight_grams', $item) && $item['weight_grams'] !== null
                         ? (int) $item['weight_grams']
                         : null;
-                    $pricePerUnit = $this->normalizeMoney($product->selling_price);
-                    $lineSubtotal = round($quantity * $pricePerUnit, 2);
+                    $pricePerUnit = DecimalMath::parse($product->selling_price, 2);
+                    $lineSubtotal = DecimalMath::multiply($quantity, $pricePerUnit, 1000);
                     $stock = $this->stockService->lockStock($outlet->id, $product->id);
 
-                    if (round((float) $stock->quantity, 3) < $quantity) {
+                    $stockQuantity = DecimalMath::parse($stock->quantity, 3);
+                    if ($stockQuantity < $quantity) {
                         throw ValidationException::withMessages([
                             "items.$index.product_id" => "Stok {$product->name} tidak cukup.",
                         ]);
@@ -86,7 +100,7 @@ class TransactionService
                     $subtotal += $lineSubtotal;
                 }
 
-                $subtotal = round($subtotal, 2);
+                $subtotal = $subtotal;
                 $discount = $this->resolveDiscountAmount($data, $subtotal);
 
                 if ($discount > $subtotal) {
@@ -95,7 +109,7 @@ class TransactionService
                     ]);
                 }
 
-                $total = round($subtotal - $discount, 2);
+                $total = $subtotal - $discount;
                 $cashReceived = null;
                 $changeAmount = null;
 
@@ -114,27 +128,31 @@ class TransactionService
                         ]);
                     }
 
-                    $changeAmount = round($cashReceived - $total, 2);
+                    $changeAmount = $cashReceived - $total;
                 }
 
-                $transaction = Transaction::create([
+                $transactionAttributes = [
                     'invoice_number' => $invoiceNumber,
                     'outlet_id' => $outlet->id,
                     'user_id' => $user->id,
-                    'subtotal' => $subtotal,
-                    'discount' => $discount,
-                    'total' => $total,
+                    'subtotal' => DecimalMath::format($subtotal, 2),
+                    'discount' => DecimalMath::format($discount, 2),
+                    'total' => DecimalMath::format($total, 2),
                     'payment_method' => $paymentMethod,
-                    'cash_received' => $cashReceived,
-                    'change_amount' => $changeAmount,
+                    'cash_received' => $cashReceived === null ? null : DecimalMath::format($cashReceived, 2),
+                    'change_amount' => $changeAmount === null ? null : DecimalMath::format($changeAmount, 2),
                     'status' => 'completed',
-                ]);
+                ];
+                if ($this->idempotencyColumnExists()) {
+                    $transactionAttributes['idempotency_key'] = $idempotencyKey;
+                }
+                $transaction = Transaction::create($transactionAttributes);
 
                 foreach ($preparedItems as $preparedItem) {
-                    $stock = $preparedItem['stock'];
-                    $quantityBefore = round((float) $stock->quantity, 3);
-                    $quantityChange = round(-$preparedItem['quantity'], 3);
-                    $quantityAfter = round($quantityBefore + $quantityChange, 3);
+                    $stock = $this->stockService->lockStock($outlet->id, $preparedItem['product']->id);
+                    $quantityBefore = DecimalMath::parse($stock->quantity, 3);
+                    $quantityChange = -$preparedItem['quantity'];
+                    $quantityAfter = $quantityBefore + $quantityChange;
 
                     if ($quantityAfter < 0) {
                         throw ValidationException::withMessages([
@@ -142,16 +160,16 @@ class TransactionService
                         ]);
                     }
 
-                    $stock->quantity = $quantityAfter;
+                    $stock->quantity = DecimalMath::format($quantityAfter, 3);
                     $stock->save();
 
                     TransactionItem::create([
                         'transaction_id' => $transaction->id,
                         'product_id' => $preparedItem['product']->id,
-                        'quantity' => $preparedItem['quantity'],
+                        'quantity' => DecimalMath::format($preparedItem['quantity'], 3),
                         'weight_grams' => $preparedItem['weight_grams'],
-                        'price_per_unit' => $preparedItem['price_per_unit'],
-                        'subtotal' => $preparedItem['subtotal'],
+                        'price_per_unit' => DecimalMath::format($preparedItem['price_per_unit'], 2),
+                        'subtotal' => DecimalMath::format($preparedItem['subtotal'], 2),
                     ]);
 
                     StockHistory::create([
@@ -161,18 +179,20 @@ class TransactionService
                         'reference_type' => Transaction::class,
                         'reference_id' => $transaction->id,
                         'type' => 'sale',
-                        'quantity_before' => $quantityBefore,
-                        'quantity_change' => $quantityChange,
-                        'quantity_after' => $quantityAfter,
+                        'quantity_before' => DecimalMath::format($quantityBefore, 3),
+                        'quantity_change' => DecimalMath::format($quantityChange, 3),
+                        'quantity_after' => DecimalMath::format($quantityAfter, 3),
                         'reason' => 'Penjualan',
                         'notes' => null,
                     ]);
                 }
 
+                $this->salesAccountingService->recordSale($transaction);
+
                 return $transaction->load(['outlet', 'user', 'items.product']);
             });
         } catch (\Throwable $throwable) {
-            Cache::forget($fingerprint);
+            Cache::forget($cacheKey);
 
             throw $throwable;
         }
@@ -198,14 +218,28 @@ class TransactionService
         return $prefix.str_pad((string) $sequence, 4, '0', STR_PAD_LEFT);
     }
 
-    private function resolveQuantity(array $item): float
+    private function resolveQuantity(array $item): int
     {
         if (array_key_exists('weight_grams', $item) && $item['weight_grams'] !== null) {
-            return round(((int) $item['weight_grams']) / 1000, 3);
+            $grams = (int) $item['weight_grams'];
+            if ($grams <= 0) {
+                throw ValidationException::withMessages(['items' => 'Berat item harus lebih besar dari 0 gram.']);
+            }
+
+            return $grams;
         }
 
         if (array_key_exists('quantity', $item) && $item['quantity'] !== null) {
-            return round((float) $item['quantity'], 3);
+            try {
+                $quantity = DecimalMath::parse($item['quantity'], 3);
+            } catch (\InvalidArgumentException) {
+                throw ValidationException::withMessages(['items' => 'Quantity item tidak valid.']);
+            }
+            if ($quantity <= 0) {
+                throw ValidationException::withMessages(['items' => 'Quantity item harus lebih besar dari 0.']);
+            }
+
+            return $quantity;
         }
 
         throw ValidationException::withMessages([
@@ -213,29 +247,33 @@ class TransactionService
         ]);
     }
 
-    private function normalizeMoney(mixed $value): ?float
+    private function normalizeMoney(mixed $value): ?int
     {
         if ($value === null || $value === '') {
             return null;
         }
 
-        return round((float) $value, 2);
+        try {
+            return max(0, DecimalMath::parse($value, 2));
+        } catch (\InvalidArgumentException) {
+            throw ValidationException::withMessages(['amount' => 'Nominal tidak valid.']);
+        }
     }
 
-    private function resolveDiscountAmount(array $data, float $subtotal): float
+    private function resolveDiscountAmount(array $data, int $subtotal): int
     {
         $discountType = $data['discount_type'] ?? null;
 
         if ($discountType === null || $discountType === '') {
-            return max(0.0, (float) $this->normalizeMoney($data['discount'] ?? 0));
+            return $this->normalizeMoney($data['discount'] ?? 0) ?? 0;
         }
 
-        $discountValue = max(0.0, (float) $this->normalizeMoney($data['discount_value'] ?? 0));
+        $discountValue = $this->normalizeMoney($data['discount_value'] ?? 0) ?? 0;
 
         return match ($discountType) {
             'amount' => $discountValue,
-            'percent' => round($subtotal * ($discountValue / 100), 2),
-            default => 0.0,
+            'percent' => DecimalMath::multiply($subtotal, $discountValue, 10000),
+            default => 0,
         };
     }
 
@@ -251,7 +289,7 @@ class TransactionService
                     return [
                         'product_id' => (int) ($item['product_id'] ?? 0),
                         'weight_grams' => isset($item['weight_grams']) ? (int) $item['weight_grams'] : null,
-                        'quantity' => isset($item['quantity']) ? (float) $item['quantity'] : null,
+                        'quantity' => isset($item['quantity']) ? $this->quantityFingerprint($item['quantity']) : null,
                     ];
                 })
             ->sortBy(function (array $item): string {
@@ -259,7 +297,7 @@ class TransactionService
                     '%010d|%010d|%016s',
                     $item['product_id'],
                     $item['weight_grams'] ?? 0,
-                    number_format((float) ($item['quantity'] ?? 0), 3, '.', '')
+                    (string) ($item['quantity'] ?? '0.000')
                 );
             })
             ->values()
@@ -273,5 +311,19 @@ class TransactionService
             'discount_value' => $discountValue,
             'items' => $items,
         ]));
+    }
+
+    private function idempotencyColumnExists(): bool
+    {
+        return Schema::hasColumn('transactions', 'idempotency_key');
+    }
+
+    private function quantityFingerprint(mixed $value): string
+    {
+        try {
+            return DecimalMath::format(DecimalMath::parse($value, 3), 3);
+        } catch (\InvalidArgumentException) {
+            return '0.000';
+        }
     }
 }

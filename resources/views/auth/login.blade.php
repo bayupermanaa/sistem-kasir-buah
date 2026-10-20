@@ -14,7 +14,7 @@
             <div class="row justify-content-center">
                 <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
                     <div class="text-center mb-4">
-                        <div class="d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle shadow-sm mb-3" style="width: 4rem; height: 4rem;">
+                        <div class="ui-login-mark d-inline-flex align-items-center justify-content-center bg-primary text-white rounded-circle shadow-sm mb-3">
                             <i class="bi bi-shop fs-3"></i>
                         </div>
                         <h1 class="h4 mb-1">Sistem Kasir</h1>

@@ -9,6 +9,7 @@ use App\Models\Category;
 use App\Models\OutletProductStock;
 use App\Models\Product;
 use App\Models\StockHistory;
+use App\Models\Supplier;
 use App\Services\SingleOutletService;
 use App\Services\StockService;
 use Illuminate\Http\RedirectResponse;
@@ -109,7 +110,7 @@ class StockController extends Controller
             outlet: $outlet,
             product: $product,
             type: $request->string('type')->toString(),
-            quantity: (float) $request->input('quantity'),
+            quantity: $request->input('quantity'),
             reason: $request->string('reason')->toString(),
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
         );
@@ -122,7 +123,12 @@ class StockController extends Controller
         $outlet = $this->singleOutletService->getDefaultOutlet();
         $stock = OutletProductStock::where('outlet_id', $outlet->id)->where('product_id', $product->id)->first();
 
-        return view('stocks.purchase', compact('product', 'stock', 'outlet'));
+        return view('stocks.purchase', [
+            'product' => $product,
+            'stock' => $stock,
+            'outlet' => $outlet,
+            'suppliers' => Supplier::query()->where('is_active', true)->orderBy('name')->get(),
+        ]);
     }
 
     public function storePurchase(StoreStockPurchaseRequest $request, Product $product): RedirectResponse
@@ -130,11 +136,14 @@ class StockController extends Controller
         $outlet = $this->singleOutletService->getDefaultOutlet();
         $this->stockService->purchaseStock(
             $request->user(), $outlet, $product,
-            (float) $request->input('quantity'),
-            $request->filled('unit_cost') ? (float) $request->input('unit_cost') : null,
+            $request->input('quantity'),
+            $request->filled('unit_cost') ? $request->input('unit_cost') : null,
             $request->date('purchase_date')->toDateString(),
             $request->filled('payment_method') ? $request->string('payment_method')->toString() : null,
             $request->filled('notes') ? $request->string('notes')->toString() : null,
+            $request->filled('supplier_id') ? $request->integer('supplier_id') : null,
+            $request->filled('invoice_number') ? $request->string('invoice_number')->toString() : null,
+            $request->filled('due_date') ? $request->date('due_date')->toDateString() : null,
         );
 
         return redirect()->route('products.index')->with('success', 'Pembelian stok berhasil dicatat.');
@@ -151,7 +160,7 @@ class StockController extends Controller
         $this->stockService->updateMinimumStock(
             user: $request->user(),
             stock: $outletProductStock->load('outlet'),
-            minimumStock: (float) $request->input('minimum_stock')
+            minimumStock: $request->input('minimum_stock')
         );
 
         return redirect()->route('products.index')->with('success', 'Minimum stok berhasil diperbarui.');

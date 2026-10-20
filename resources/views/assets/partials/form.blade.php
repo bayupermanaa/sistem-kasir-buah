@@ -20,6 +20,11 @@
             </div>
         </div>
 
+        <div class="alert alert-info d-flex align-items-start gap-2" role="note">
+            <i class="bi bi-info-circle mt-1"></i>
+            <div>Aset historis yang sudah termasuk saldo awal tidak perlu didaftarkan ulang sebagai pembelian baru.</div>
+        </div>
+
         <div class="row g-3">
             <div class="col-md-6">
                 <label class="form-label" for="name">Nama Aset</label>
@@ -67,6 +72,7 @@
                         <option value="{{ $key }}" @selected(old('payment_method', $asset->payment_method ?? '') === $key)>{{ $label }}</option>
                     @endforeach
                 </select>
+                <div class="form-text">Pembelian aset dicatat sebagai aset tetap, bukan beban operasional.</div>
                 @error('payment_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
             </div>
             <div class="col-md-6">

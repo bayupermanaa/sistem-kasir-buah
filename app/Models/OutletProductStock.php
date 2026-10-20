@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Support\DecimalMath;
 
 class OutletProductStock extends Model
 {
@@ -34,12 +35,15 @@ class OutletProductStock extends Model
 
     public function isOut(): bool
     {
-        return (float) $this->quantity <= 0;
+        return DecimalMath::parse($this->quantity, 3) <= 0;
     }
 
     public function isLow(): bool
     {
-        return (float) $this->quantity > 0 && (float) $this->quantity <= (float) $this->minimum_stock;
+        $quantity = DecimalMath::parse($this->quantity, 3);
+        $minimum = DecimalMath::parse($this->minimum_stock, 3);
+
+        return $quantity > 0 && $quantity <= $minimum;
     }
 
     public function statusLabel(): string

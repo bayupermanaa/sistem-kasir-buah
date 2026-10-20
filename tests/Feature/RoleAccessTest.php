@@ -40,6 +40,12 @@ class RoleAccessTest extends TestCase
         $this->actingAs($owner)
             ->get('/pengaturan')
             ->assertOk();
+
+        $this->actingAs($owner)
+            ->get('/stock-opname')
+            ->assertOk()
+            ->assertSee('Stock Opname')
+            ->assertSee('bi-clipboard-check');
     }
 
     public function test_cashier_can_access_kasir_but_not_owner_pages(): void
@@ -69,6 +75,11 @@ class RoleAccessTest extends TestCase
         $this->actingAs($cashier)
             ->get('/pengaturan')
             ->assertForbidden();
+
+        $this->actingAs($cashier)
+            ->get('/kasir')
+            ->assertOk()
+            ->assertDontSee('Stock Opname');
     }
 
     public function test_login_redirects_based_on_role(): void

@@ -80,6 +80,21 @@ class User extends Authenticatable
         return $this->hasMany(StockOpname::class, 'created_by');
     }
 
+    public function supplierPayables(): HasMany
+    {
+        return $this->hasMany(SupplierPayable::class, 'created_by');
+    }
+
+    public function payablePayments(): HasMany
+    {
+        return $this->hasMany(PayablePayment::class, 'created_by');
+    }
+
+    public function journalEntries(): HasMany
+    {
+        return $this->hasMany(JournalEntry::class, 'created_by');
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

@@ -7,6 +7,12 @@
         ])
     </x-slot>
 
+    <div class="d-flex justify-content-end mb-3">
+        <a href="{{ route('accounting.opening-balance.create') }}" class="btn btn-outline-primary">
+            <i class="bi bi-journal-check me-1"></i>Pengaturan Saldo Awal
+        </a>
+    </div>
+
     @php
         $activeCashiersCount = $cashiers->where('is_active', true)->count();
     @endphp

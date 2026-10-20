@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Support\DecimalMath;
 
 class StoreTransactionRequest extends FormRequest
 {
@@ -16,6 +17,7 @@ class StoreTransactionRequest extends FormRequest
     {
         return [
             'payment_method' => ['required', 'string', Rule::in(['cash', 'qris'])],
+            'idempotency_key' => ['nullable', 'uuid', 'max:80'],
             'discount_type' => ['nullable', 'string', Rule::in(['none', 'amount', 'percent'])],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
             'discount' => ['nullable', 'numeric', 'min:0'],
@@ -30,7 +32,9 @@ class StoreTransactionRequest extends FormRequest
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
-            if ($this->input('discount_type') === 'percent' && (float) $this->input('discount_value', 0) > 100) {
+            $discountValue = $this->input('discount_value', 0);
+            $discountPercent = is_numeric($discountValue) ? DecimalMath::parse($discountValue, 2) : 0;
+            if ($this->input('discount_type') === 'percent' && $discountPercent > 10000) {
                 $validator->errors()->add('discount_value', 'Diskon persen maksimal 100.');
             }
         });

@@ -125,18 +125,24 @@
                                         <i class="bi bi-eye"></i>
                                         Detail
                                     </a>
-                                    <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-primary ui-action-icon-btn" data-bs-toggle="tooltip" title="Edit Aset" aria-label="Edit Aset">
-                                        <i class="bi bi-pencil-square"></i>
-                                        Edit
-                                    </a>
-                                    <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="delete-form d-inline">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger ui-action-icon-btn" data-bs-toggle="tooltip" title="Hapus Aset" aria-label="Hapus Aset">
-                                            <i class="bi bi-trash"></i>
-                                            Hapus
-                                        </button>
-                                    </form>
+                                    @if ($asset->journal_entries_exists)
+                                        <span class="badge text-bg-info" data-bs-toggle="tooltip" title="Aset memiliki jurnal dan tidak dapat diedit atau dihapus.">
+                                            <i class="bi bi-lock me-1"></i>Sudah dijurnal
+                                        </span>
+                                    @else
+                                        <a href="{{ route('assets.edit', $asset) }}" class="btn btn-sm btn-outline-primary ui-action-icon-btn" data-bs-toggle="tooltip" title="Edit Aset" aria-label="Edit Aset">
+                                            <i class="bi bi-pencil-square"></i>
+                                            Edit
+                                        </a>
+                                        <form method="POST" action="{{ route('assets.destroy', $asset) }}" class="delete-form d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-outline-danger ui-action-icon-btn" data-bs-toggle="tooltip" title="Hapus Aset" aria-label="Hapus Aset">
+                                                <i class="bi bi-trash"></i>
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

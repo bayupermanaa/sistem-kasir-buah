@@ -53,15 +53,9 @@
         </div>
 
         <div class="ui-topbar-meta">
-            <div class="ui-topbar-chip ui-topbar-clock d-none d-md-flex flex-column align-items-start">
-                <span class="small text-muted">Hari ini</span>
-                <span class="fw-semibold" data-topbar-date>{{ now()->format('d/m/Y') }}</span>
-                <span class="text-accent fw-semibold" data-topbar-time>--:--:--</span>
-            </div>
-
             <div class="dropdown">
                 <button class="btn btn-light border dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    <span class="badge text-bg-primary rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 2.2rem; height: 2.2rem; line-height: 1.4;">
+                    <span class="ui-topbar-avatar badge text-bg-primary rounded-circle d-inline-flex align-items-center justify-content-center">
                         {{ strtoupper(substr($user?->name ?? 'U', 0, 1)) }}
                     </span>
                     <span class="d-none d-md-inline text-start">

@@ -176,6 +176,7 @@
         <div class="col-lg-4">
             <form method="POST" action="{{ route('kasir.store') }}" id="checkoutForm" class="card ui-cart-panel border-0 shadow-sm">
                 @csrf
+                <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
                 <div class="card-header border-0 pb-0">
                     <div class="fw-bold fs-5">Keranjang</div>
                     <div class="text-muted small">Kelola item, pilih diskon, lalu lanjutkan ke pembayaran.</div>
@@ -249,7 +250,7 @@
                             <div class="col-6">
                                 <label class="ui-method-option active h-100 w-100" for="paymentMethodCash" data-payment-card="cash">
                                     <input class="form-check-input" type="radio" name="payment_method" id="paymentMethodCash" value="cash" checked>
-                                    <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
+                                    <span class="ui-quick-action-icon ui-quick-action-icon-sm flex-shrink-0">
                                         <i class="bi bi-cash-coin"></i>
                                     </span>
                                     <span>
@@ -261,7 +262,7 @@
                             <div class="col-6">
                                 <label class="ui-method-option h-100 w-100" for="paymentMethodQris" data-payment-card="qris">
                                     <input class="form-check-input" type="radio" name="payment_method" id="paymentMethodQris" value="qris">
-                                    <span class="ui-quick-action-icon flex-shrink-0" style="width: 2.5rem; height: 2.5rem;">
+                                    <span class="ui-quick-action-icon ui-quick-action-icon-sm flex-shrink-0">
                                         <i class="bi bi-qr-code-scan"></i>
                                     </span>
                                     <span>

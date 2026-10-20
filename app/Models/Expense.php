@@ -36,6 +36,7 @@ class Expense extends Model
         'category',
         'description',
         'amount',
+        'payment_method',
         'notes',
         'created_by',
     ];

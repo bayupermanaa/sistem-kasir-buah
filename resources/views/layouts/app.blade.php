@@ -16,7 +16,7 @@
             <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
                 <div class="offcanvas-header">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 2.25rem; height: 2.25rem;">
+                        <div class="ui-brand-mark bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center">
                             <i class="bi bi-shop"></i>
                         </div>
                         <div>

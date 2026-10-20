@@ -26,6 +26,17 @@ Homestead.json
 storage/logs/*
 bootstrap/cache/*.php
 
+# Local database dumps and backups
+database/*.sql
+*.sql.gz
+*.sql.zip
+*.sqlite
+*.sqlite3
+*.db
+*.bak
+*.backup
+*.dump
+
 /public/build
 /storage/pail
 .env.backup

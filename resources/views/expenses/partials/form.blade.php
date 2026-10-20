@@ -53,6 +53,17 @@
                 </div>
             </div>
 
+            <div class="col-md-6">
+                <label class="form-label" for="payment_method">Metode Pembayaran</label>
+                <select name="payment_method" id="payment_method" class="form-select @error('payment_method') is-invalid @enderror">
+                    <option value="">Belum ditentukan</option>
+                    <option value="cash" @selected(old('payment_method', $expense->payment_method ?? '') === 'cash')>Tunai</option>
+                    <option value="transfer" @selected(old('payment_method', $expense->payment_method ?? '') === 'transfer')>Transfer Bank</option>
+                    <option value="qris" @selected(old('payment_method', $expense->payment_method ?? '') === 'qris')>QRIS</option>
+                </select>
+                @error('payment_method')<div class="invalid-feedback">{{ $message }}</div>@enderror
+            </div>
+
             <div class="col-12">
                 <label class="form-label" for="notes">Catatan</label>
                 <textarea name="notes" id="notes" rows="4" class="form-control @error('notes') is-invalid @enderror" placeholder="Opsional">{{ old('notes', $expense->notes ?? '') }}</textarea>

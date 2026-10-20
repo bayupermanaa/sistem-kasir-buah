@@ -99,7 +99,11 @@ class StockOpnameTest extends TestCase
         $owner = $this->ownerUser();
         $cashier = $this->cashierUser();
 
-        $this->actingAs($owner)->get(route('stock.opnames.index'))->assertOk()->assertSee('Daftar Stock Opname');
+        $this->actingAs($owner)->get(route('stock.opnames.index'))
+            ->assertOk()
+            ->assertSee('Daftar Stock Opname')
+            ->assertSee(route('stock.opnames.index'))
+            ->assertSee('ui-sidebar-link d-flex align-items-center gap-2 px-3 py-2 active');
         $this->actingAs($owner)->get(route('stock.opnames.create'))->assertOk()->assertSee('Form Stock Opname');
 
         $this->actingAs($cashier)->get(route('stock.opnames.index'))->assertForbidden();

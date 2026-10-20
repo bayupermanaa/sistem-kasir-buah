@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Outlet extends Model
 {
@@ -51,6 +52,26 @@ class Outlet extends Model
     public function stockPurchases(): HasMany
     {
         return $this->hasMany(StockPurchase::class);
+    }
+
+    public function supplierPayables(): HasMany
+    {
+        return $this->hasMany(SupplierPayable::class);
+    }
+
+    public function payablePayments(): HasMany
+    {
+        return $this->hasMany(PayablePayment::class);
+    }
+
+    public function accountingSetting(): HasOne
+    {
+        return $this->hasOne(AccountingSetting::class);
+    }
+
+    public function journalEntries(): HasMany
+    {
+        return $this->hasMany(JournalEntry::class);
     }
 
     public function assets(): HasMany

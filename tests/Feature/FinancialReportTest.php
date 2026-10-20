@@ -248,7 +248,7 @@ class FinancialReportTest extends TestCase
         $this->actingAs($data['owner'])->get(route('reports.profit-loss', $query))
             ->assertOk()
             ->assertSee('Laporan Laba Rugi')
-            ->assertSee('LABA BERSIH');
+            ->assertSee('LABA / RUGI BERSIH');
 
         $this->actingAs($data['owner'])->get(route('reports.cash-flow', $query))
             ->assertOk()
@@ -258,7 +258,7 @@ class FinancialReportTest extends TestCase
         $this->actingAs($data['owner'])->get(route('reports.balance-sheet', $query))
             ->assertOk()
             ->assertSee('Neraca')
-            ->assertSee('Sumber modal belum tersedia.');
+            ->assertSee('Neraca lengkap belum tersedia');
     }
     public function test_cashier_only_sees_sales_report_and_financial_sections_are_hidden(): void
     {
@@ -315,9 +315,9 @@ class FinancialReportTest extends TestCase
         $this->actingAs($data['owner'])
             ->get(route('reports.balance-sheet', ['date_from' => '2026-07-24', 'date_to' => '2026-07-24']))
             ->assertOk()
-            ->assertSee('Aset Lancar Terukur')
+            ->assertSee('Kas Tunai')
             ->assertSee('Total Kewajiban + Ekuitas')
             ->assertSee('Belum tersedia')
-            ->assertSee('belum dapat diverifikasi');
+            ->assertSee('belum tersedia sebelum');
     }
 }

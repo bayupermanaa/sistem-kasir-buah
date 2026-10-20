@@ -747,3 +747,53 @@ body.ui-app-shell {
 .ui-quantity-positive {
     color: #2f8f3a;
 }
+
+.ui-quick-action-icon-sm {
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+}
+
+.ui-brand-mark {
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 2.25rem;
+}
+
+.ui-login-mark {
+    width: 4rem;
+    height: 4rem;
+}
+
+.ui-topbar-avatar {
+    width: 2.2rem;
+    height: 2.2rem;
+    line-height: 1.4;
+}
+
+.ui-progress-compact {
+    height: 1rem;
+}
+
+.ui-welcome-card {
+    max-width: 32rem;
+}
+
+@media (max-width: 575.98px) {
+    .ui-page-header {
+        padding: 0.9rem 1rem;
+    }
+
+    .ui-page-header-title {
+        font-size: 1.15rem;
+    }
+
+    .ui-action-stack {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .ui-action-stack .btn {
+        flex: 1 1 auto;
+    }
+}

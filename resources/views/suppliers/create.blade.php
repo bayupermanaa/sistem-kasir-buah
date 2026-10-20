@@ -1,0 +1,1 @@
+<x-app-layout><x-slot name="header">@include('layouts.partials.page-header', ['title' => 'Tambah Supplier', 'subtitle' => 'Tambahkan data supplier baru.', 'icon' => 'bi-truck'])</x-slot><div class="card ui-table-card"><div class="card-body"><form method="POST" action="{{ route('suppliers.store') }}" data-submit-loading>@include('suppliers._form')</form></div></div></x-app-layout>

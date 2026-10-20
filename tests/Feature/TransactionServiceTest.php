@@ -198,6 +198,43 @@ class TransactionServiceTest extends TestCase
         $this->assertSame('0.500', $transactionItem->quantity);
         $this->assertSame('6000.00', $transactionItem->subtotal);
     }
+
+    public function test_decimal_quantities_are_added_and_priced_without_float_drift(): void
+    {
+        $outlet = $this->defaultOutlet();
+        $user = $this->ownerUser();
+        $product = $this->createProduct('BRG-DEC-1', 'Nangka', 10000.10);
+        $this->createStock($outlet, $product, '1.000');
+
+        $transaction = app(TransactionService::class)->store($user, [
+            'payment_method' => 'qris',
+            'items' => [
+                ['product_id' => $product->id, 'quantity' => '0.100'],
+                ['product_id' => $product->id, 'quantity' => '0.200'],
+            ],
+        ]);
+
+        $this->assertSame(['0.100', '0.200'], $transaction->items->pluck('quantity')->all());
+        $this->assertSame('3000.03', $transaction->subtotal);
+        $this->assertSame('0.700', OutletProductStock::firstOrFail()->quantity);
+    }
+
+    public function test_gram_weights_are_stored_as_kg_with_three_decimal_precision(): void
+    {
+        $outlet = $this->defaultOutlet();
+        $user = $this->ownerUser();
+        $product = $this->createProduct('BRG-DEC-2', 'Melon', 20000);
+        $this->createStock($outlet, $product, '1.000');
+
+        $transaction = app(TransactionService::class)->store($user, [
+            'payment_method' => 'qris',
+            'items' => [['product_id' => $product->id, 'weight_grams' => 100]],
+        ]);
+
+        $this->assertSame('0.100', $transaction->items->firstOrFail()->quantity);
+        $this->assertSame('2000.00', $transaction->total);
+        $this->assertSame('0.900', OutletProductStock::firstOrFail()->quantity);
+    }
     public function test_transaction_rejects_when_stock_is_not_enough(): void
     {
         $outlet = $this->defaultOutlet();

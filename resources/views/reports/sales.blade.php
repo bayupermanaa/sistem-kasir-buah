@@ -171,7 +171,7 @@
                                 <span class="fw-semibold">{{ $formatTanggal($trend->report_date) }}</span>
                                 <span class="text-muted">{{ number_format((int) $trend->transaction_count, 0, ',', '.') }} transaksi Ã‚Â· {{ $formatRupiah($trend->total_sales) }}</span>
                             </div>
-                            <div class="progress" style="height: 1rem;">
+                            <div class="progress ui-progress-compact">
                                 <div class="progress-bar bg-primary" role="progressbar" style="width: {{ $percentage }}%;" aria-valuenow="{{ $percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
                             </div>
                         </div>

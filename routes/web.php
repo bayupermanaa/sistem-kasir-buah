@@ -1,6 +1,10 @@
 <?php
 
 use App\Http\Controllers\AssetController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\OpeningBalanceController;
+use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierPayableController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CashierTransactionController;
 use App\Http\Controllers\TransactionHistoryController;
@@ -19,7 +23,7 @@ use Illuminate\Http\Request;
 
 Route::redirect('/', '/login');
 
-Route::view('/dashboard', 'dashboard')
+Route::get('/dashboard', [DashboardController::class, 'index'])
     ->middleware(['auth', 'role:owner'])
     ->name('dashboard');
 
@@ -45,6 +49,8 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::get('/neraca', fn (Request $request, SalesReportService $service) => app(SalesReportController::class)->financial($request, $service, 'balance-sheet'))->name('reports.balance-sheet');
 
     Route::get('/pengaturan', [SettingsController::class, 'index'])->name('pengaturan');
+    Route::get('/pengaturan/saldo-awal', [OpeningBalanceController::class, 'create'])->name('accounting.opening-balance.create');
+    Route::post('/pengaturan/saldo-awal', [OpeningBalanceController::class, 'store'])->name('accounting.opening-balance.store');
     Route::put('/pengaturan/kasir/{cashier}/password', [SettingsController::class, 'updateCashierPassword'])
         ->whereNumber('cashier')
         ->name('pengaturan.cashiers.password.update');
@@ -79,6 +85,13 @@ Route::middleware(['auth', 'role:owner'])->group(function () {
     Route::get('/aset/{asset}/edit', [AssetController::class, 'edit'])->name('assets.edit');
     Route::put('/aset/{asset}', [AssetController::class, 'update'])->name('assets.update');
     Route::delete('/aset/{asset}', [AssetController::class, 'destroy'])->name('assets.destroy');
+    Route::resource('/suppliers', SupplierController::class)->except(['show'])->names('suppliers');
+    Route::get('/utang-usaha', [SupplierPayableController::class, 'index'])->name('payables.index');
+    Route::get('/utang-usaha/create', [SupplierPayableController::class, 'create'])->name('payables.create');
+    Route::post('/utang-usaha', [SupplierPayableController::class, 'store'])->name('payables.store');
+    Route::get('/utang-usaha/{payable}', [SupplierPayableController::class, 'show'])->name('payables.show');
+    Route::get('/utang-usaha/{payable}/bayar', [SupplierPayableController::class, 'pay'])->name('payables.pay');
+    Route::post('/utang-usaha/{payable}/bayar', [SupplierPayableController::class, 'storePayment'])->name('payables.payments.store');
 });
 
 Route::middleware(['auth', 'role:owner'])->group(function () {

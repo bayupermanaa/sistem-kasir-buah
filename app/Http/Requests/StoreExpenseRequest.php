@@ -20,6 +20,7 @@ class StoreExpenseRequest extends FormRequest
             'category' => ['required', 'string', Rule::in(Expense::categories())],
             'description' => ['required', 'string', 'max:255'],
             'amount' => ['required', 'numeric', 'gt:0'],
+            'payment_method' => ['nullable', 'string', Rule::in(['cash', 'transfer', 'qris'])],
             'notes' => ['nullable', 'string'],
         ];
     }

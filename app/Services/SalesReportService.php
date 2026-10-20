@@ -16,7 +16,12 @@ use Illuminate\Support\Carbon;
 
 class SalesReportService
 {
-    public function __construct(private readonly SingleOutletService $singleOutletService)
+    public function __construct(
+        private readonly SingleOutletService $singleOutletService,
+        private readonly BalanceSheetService $balanceSheetService,
+        private readonly ProfitLossService $profitLossService,
+        private readonly CashFlowService $cashFlowService,
+    )
     {
     }
 
@@ -299,19 +304,25 @@ class SalesReportService
         $cashOutExpenses = $operatingExpenses;
         $stockPurchaseCashOut = (float) (clone $stockPurchaseQuery)->whereIn('payment_method', ['cash', 'qris', 'transfer', 'other'])->sum('total_cost');
         $cashOutTotal = $cashOutExpenses + $stockPurchaseCashOut + $assetCashOut;
-        $cashFlowNet = $cashInTotal - $cashOutTotal;
 
-        $inventoryValue = $this->inventoryValue($outletId);
-        $missingInventoryProducts = $this->inventoryMissingProducts($outletId);
-        $fixedAssetValue = (float) (clone $this->assetPurchaseQuery($outletId, $filters))
-            ->where('status', 'Aktif')
-            ->sum('total_cost');
-        $knownCurrentAssets = $inventoryValue;
-        $knownAssetsTotal = $knownCurrentAssets + $fixedAssetValue;
-        $cashBalanceAvailable = false;
-        $liabilitiesAvailable = false;
-        $equityAvailable = false;
-        $accountingComplete = $missingInventoryProducts->isEmpty() && $cashBalanceAvailable && $liabilitiesAvailable && $equityAvailable;
+        $balanceSheet = $this->balanceSheetService->build($outletId, $filters['date_to']);
+
+        $profitLoss = $this->profitLossService->build(
+            outletId: $outletId,
+            dateFrom: $filters['date_from'],
+            dateTo: $filters['date_to'],
+            historicalFallback: [
+                'revenue_before_discount' => $revenueBeforeDiscount,
+                'discount_total' => $discountTotal,
+                'net_sales' => $netSales,
+                'hpp' => $hppComplete ? $hpp : null,
+                'gross_profit' => $grossProfit,
+                'operating_expenses' => $operatingExpenses,
+                'net_profit' => $netProfit,
+                'hpp_complete' => $hppComplete,
+                'missing_hpp_products' => $missingHppProducts,
+            ],
+        );
 
         $expenseByCategory = (clone $expenseQuery)
             ->selectRaw('category, COUNT(*) as expense_count, SUM(amount) as total_amount')
@@ -319,59 +330,19 @@ class SalesReportService
             ->orderByDesc('total_amount')
             ->get();
 
+        $cashFlow = $this->cashFlowService->build($outletId, $filters['date_from'], $filters['date_to'], [
+            'cash_in_cash' => $cashInCash,
+            'cash_in_qris' => $cashInQris,
+            'cash_out_expenses' => $cashOutExpenses,
+            'cash_out_stock_purchases' => $stockPurchaseCashOut,
+            'cash_out_assets' => $assetCashOut,
+            'expense_by_category' => $expenseByCategory,
+        ]);
+
         return [
-            'profitLoss' => [
-                'revenue_before_discount' => $revenueBeforeDiscount,
-                'discount_total' => $discountTotal,
-                'net_sales' => $netSales,
-                'hpp' => $hpp,
-                'gross_profit' => $grossProfit,
-                'operating_expenses' => $operatingExpenses,
-                'net_profit' => $netProfit,
-                'hpp_complete' => $hppComplete,
-                'missing_hpp_products' => $missingHppProducts,
-            ],
-            'cashFlow' => [
-                'cash_in_cash' => $cashInCash,
-                'cash_in_qris' => $cashInQris,
-                'cash_in_total' => $cashInTotal,
-                'cash_out_expenses' => $cashOutExpenses,
-                'cash_out_stock_purchases' => $stockPurchaseCashOut,
-                'cash_out_assets' => $assetCashOut,
-                'cash_out_total' => $cashOutTotal,
-                'cash_flow_net' => $cashFlowNet,
-                'expense_by_category' => $expenseByCategory,
-            ],
-            'balanceSheet' => [
-                'available' => true,
-                'accounting_complete' => $accountingComplete,
-                'assets' => [
-                    'current_assets' => $knownCurrentAssets,
-                    'cash' => null,
-                    'inventory_value' => $inventoryValue,
-                    'inventory_complete' => $missingInventoryProducts->isEmpty(),
-                    'missing_inventory_products' => $missingInventoryProducts,
-                    'fixed_asset_value' => $fixedAssetValue,
-                    'known_assets_total' => $knownAssetsTotal,
-                    'total_assets' => $accountingComplete ? $knownAssetsTotal : null,
-                ],
-                'liabilities' => [
-                    'total' => null,
-                    'available' => $liabilitiesAvailable,
-                ],
-                'equity' => [
-                    'total' => null,
-                    'available' => $equityAvailable,
-                ],
-                'total_liabilities_equity' => null,
-                'balanced' => false,
-                'missing' => [
-                    'saldo kas awal / kas berjalan',
-                    'utang dan kewajiban',
-                    'ekuitas/modal',
-                ],
-                'note' => 'Neraca menampilkan aset yang dapat diukur dari stok dan aset aktif. Saldo kas, kewajiban, dan modal belum memiliki sumber pencatatan yang valid sehingga total aset dan keseimbangan belum dapat diverifikasi.',
-            ],
+            'profitLoss' => $profitLoss,
+            'cashFlow' => $cashFlow,
+            'balanceSheet' => $balanceSheet,
         ];
     }
 

@@ -54,36 +54,6 @@
                 });
             });
 
-            const dateElement = document.querySelector('[data-topbar-date]');
-            const timeElement = document.querySelector('[data-topbar-time]');
-
-            const pad = function (value) {
-                return String(value).padStart(2, '0');
-            };
-
-            const renderClock = function () {
-                const now = new Date();
-
-                if (dateElement) {
-                    dateElement.textContent = now.toLocaleDateString('id-ID', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                    });
-                }
-
-                if (timeElement) {
-                    timeElement.textContent = [
-                        pad(now.getHours()),
-                        pad(now.getMinutes()),
-                        pad(now.getSeconds()),
-                    ].join(':');
-                }
-            };
-
-            renderClock();
-            window.setInterval(renderClock, 1000);
-
             document.querySelectorAll('form[data-submit-loading]').forEach(function (form) {
                 if (form.dataset.loadingReady === 'true') {
                     return;
